@@ -1,20 +1,48 @@
 import React, { useEffect, useState } from "react";
+import {
+  Plus,
+  Image as ImageIcon,
+  X,
+  Ticket as TicketIcon,
+  Send,
+  Paperclip,
+  Inbox,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import api from "../api";
-import TopBar from "../components/TopBar.jsx";
-import StatusBadge from "../components/StatusBadge.jsx";
+import Layout from "../components/Layout";
+import StatusBadge from "../components/StatusBadge";
+import Button from "../components/ui/Button";
+import { Input, Textarea, Select } from "../components/ui/Input";
+import { Card } from "../components/ui/Card";
+import Avatar from "../components/ui/Avatar";
+import EmptyState from "../components/ui/EmptyState";
+import Skeleton from "../components/ui/Skeleton";
 
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
-  const [form, setForm] = useState({ title: "", description: "", category: "", priority: "medium" });
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    priority: "medium",
+  });
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   async function loadTickets() {
-    const res = await api.get("/tickets");
-    setTickets(res.data);
+    try {
+      const res = await api.get("/tickets");
+      setTickets(res.data);
+    } catch (err) {
+      toast.error("Could not load tickets");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -24,17 +52,14 @@ export default function EmployeeDashboard() {
   function handleFileChange(e) {
     const f = e.target.files?.[0];
     if (!f) return;
-
     if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
-      setError("Only images or videos are allowed");
+      toast.error("Only images or videos are allowed");
       return;
     }
     if (f.size > 20 * 1024 * 1024) {
-      setError("File must be under 20 MB");
+      toast.error("File must be under 20 MB");
       return;
     }
-
-    setError("");
     setFile(f);
     setFilePreview(URL.createObjectURL(f));
   }
@@ -48,7 +73,6 @@ export default function EmployeeDashboard() {
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
-    setError("");
 
     try {
       let attachmentUrl = null;
@@ -67,12 +91,13 @@ export default function EmployeeDashboard() {
       }
 
       await api.post("/tickets", { ...form, attachmentUrl, attachmentType });
+      toast.success("Ticket submitted successfully");
 
       setForm({ title: "", description: "", category: "", priority: "medium" });
       clearFile();
       await loadTickets();
     } catch (err) {
-      setError(err.response?.data?.error || "Could not submit ticket");
+      toast.error(err.response?.data?.error || "Could not submit ticket");
       setUploading(false);
     } finally {
       setSubmitting(false);
@@ -80,145 +105,242 @@ export default function EmployeeDashboard() {
   }
 
   return (
-    <div className="min-h-screen">
-      <TopBar title="My IT Support Tickets" />
-      <div className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 sticky top-6">
-            <h2 className="font-medium mb-4">Report a problem</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                required
-                placeholder="Short title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <textarea
-                required
-                placeholder="Describe the issue in detail"
-                rows={4}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="Category (e.g. Hardware, Network)"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <select
-                value={form.priority}
-                onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="low">Low priority</option>
-                <option value="medium">Medium priority</option>
-                <option value="high">High priority</option>
-                <option value="urgent">Urgent</option>
-              </select>
-
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">
-                  Attach image or video (optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileChange}
-                  className="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                />
-                {filePreview && (
-                  <div className="mt-2 relative">
-                    {file?.type.startsWith("image/") ? (
-                      <img
-                        src={filePreview}
-                        alt="preview"
-                        className="rounded-lg max-h-40 w-full object-cover"
-                      />
-                    ) : (
-                      <video
-                        src={filePreview}
-                        controls
-                        className="rounded-lg max-h-40 w-full"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={clearFile}
-                      className="absolute top-1 right-1 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700"
-                      title="Remove file"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
+    <Layout
+      title="My Tickets"
+      subtitle="Report IT issues and track their progress"
+    >
+      <div className="grid lg:grid-cols-5 gap-6">
+        {/* Form column */}
+        <div className="lg:col-span-2">
+          <div className="lg:sticky lg:top-24">
+            <Card className="overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-brand-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-slate-900 text-sm">
+                    Report a problem
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    We'll get back to you quickly
+                  </p>
+                </div>
               </div>
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <button
-                disabled={submitting}
-                className="w-full bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-              >
-                {uploading
-                  ? "Uploading file…"
-                  : submitting
-                  ? "Submitting…"
-                  : "Submit ticket"}
-              </button>
-            </form>
+              <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                <Input
+                  label="Title"
+                  required
+                  placeholder="Short summary of the issue"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                />
+
+                <Textarea
+                  label="Description"
+                  required
+                  placeholder="Describe what's happening in detail…"
+                  rows={4}
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                />
+
+                <Input
+                  label="Category"
+                  placeholder="e.g. Hardware, Network, Account"
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                />
+
+                <Select
+                  label="Priority"
+                  value={form.priority}
+                  onChange={(e) =>
+                    setForm({ ...form, priority: e.target.value })
+                  }
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </Select>
+
+                {/* File upload */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                    Attach image or video (optional)
+                  </label>
+
+                  <AnimatePresence>
+                    {!filePreview ? (
+                      <motion.label
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-slate-300 hover:border-brand-400 hover:bg-brand-50/30 cursor-pointer transition"
+                      >
+                        <Paperclip className="w-4 h-4 text-slate-400" />
+                        <span className="text-xs text-slate-600">
+                          Click to choose a file
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </motion.label>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="relative rounded-xl overflow-hidden border border-slate-200"
+                      >
+                        {file?.type.startsWith("image/") ? (
+                          <img
+                            src={filePreview}
+                            alt="preview"
+                            className="w-full max-h-44 object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={filePreview}
+                            controls
+                            className="w-full max-h-44"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={clearFile}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-red-600 transition"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <Button
+                  type="submit"
+                  loading={uploading || submitting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {uploading ? "Uploading…" : submitting ? "Submitting…" : "Submit ticket"}
+                  {!uploading && !submitting && <Send className="w-4 h-4" />}
+                </Button>
+              </form>
+            </Card>
           </div>
         </div>
 
-        <div className="md:col-span-2 space-y-3">
-          {tickets.length === 0 && (
-            <p className="text-slate-500 text-sm">You haven't reported any issues yet.</p>
+        {/* Tickets column */}
+        <div className="lg:col-span-3 space-y-3">
+          {loading && (
+            <>
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </>
           )}
-          {tickets.map((t) => (
-            <div key={t.id} className="bg-white rounded-2xl border border-slate-200 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{t.title}</h3>
-                  <p className="text-sm text-slate-500 mt-1">{t.description}</p>
-                </div>
-                <StatusBadge status={t.status} />
-              </div>
 
-              {t.attachmentUrl && (
-                <div className="mt-3">
-                  {t.attachmentType === "image" ? (
-                    <a href={t.attachmentUrl} target="_blank" rel="noreferrer">
-                      <img
-                        src={t.attachmentUrl}
-                        alt="attachment"
-                        className="rounded-lg max-h-60 object-cover border border-slate-200"
-                      />
-                    </a>
-                  ) : (
-                    <video
-                      src={t.attachmentUrl}
-                      controls
-                      className="rounded-lg max-h-60 border border-slate-200"
-                    />
-                  )}
-                </div>
-              )}
+          {!loading && tickets.length === 0 && (
+            <EmptyState
+              icon={Inbox}
+              title="No tickets yet"
+              description="Your reported issues will show up here once you submit them."
+            />
+          )}
 
-              <div className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                {t.category && <span>Category: {t.category}</span>}
-                <span>Priority: {t.priority}</span>
-                {t.assignee && <span>Assigned to: {t.assignee.name}</span>}
-              </div>
-              {t.resolutionNotes && (
-                <p className="mt-2 text-sm bg-emerald-50 text-emerald-800 rounded-lg p-2">
-                  Resolution: {t.resolutionNotes}
-                </p>
-              )}
-            </div>
-          ))}
+          {!loading &&
+            tickets.map((t, i) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+              >
+                <Card className="hover:shadow-card transition-shadow">
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            #{String(t.id).padStart(4, "0")}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-slate-900 truncate">
+                          {t.title}
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                          {t.description}
+                        </p>
+                      </div>
+                      <StatusBadge status={t.status} />
+                    </div>
+
+                    {t.attachmentUrl && (
+                      <div className="mt-4">
+                        {t.attachmentType === "image" ? (
+                          <a
+                            href={t.attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              src={t.attachmentUrl}
+                              alt="attachment"
+                              className="rounded-xl max-h-56 object-cover border border-slate-200 hover:opacity-90 transition"
+                            />
+                          </a>
+                        ) : (
+                          <video
+                            src={t.attachmentUrl}
+                            controls
+                            className="rounded-xl max-h-56 border border-slate-200"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                      {t.category && (
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100">
+                          {t.category}
+                        </span>
+                      )}
+                      <span className="capitalize">Priority: {t.priority}</span>
+                      {t.assignee && (
+                        <span className="flex items-center gap-1.5">
+                          <Avatar name={t.assignee.name} size="sm" />
+                          {t.assignee.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {t.resolutionNotes && (
+                      <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <div className="text-[11px] font-semibold text-emerald-700 mb-0.5">
+                          RESOLUTION
+                        </div>
+                        <p className="text-sm text-emerald-800">
+                          {t.resolutionNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

@@ -1,7 +1,38 @@
 import React, { useEffect, useState } from "react";
+import {
+  Ticket as TicketIcon,
+  Building2,
+  UserPlus,
+  Filter,
+  TrendingUp,
+  AlertCircle,
+  Users,
+  CheckCircle2,
+  Loader,
+  Inbox,
+  X,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import api from "../api";
-import TopBar from "../components/TopBar.jsx";
-import StatusBadge from "../components/StatusBadge.jsx";
+import Layout from "../components/Layout";
+import StatusBadge from "../components/StatusBadge";
+import Button from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Input, Select } from "../components/ui/Input";
+import Avatar from "../components/ui/Avatar";
+import EmptyState from "../components/ui/EmptyState";
+import Skeleton from "../components/ui/Skeleton";
+import { cn } from "../lib/utils";
+
+const filters = [
+  { value: "", label: "All" },
+  { value: "open", label: "Open" },
+  { value: "assigned", label: "Assigned" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "resolved", label: "Resolved" },
+  { value: "closed", label: "Closed" },
+];
 
 export default function AdminDashboard() {
   const [tickets, setTickets] = useState([]);
@@ -9,16 +40,25 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [showAddStaff, setShowAddStaff] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function loadAll() {
-    const [tRes, sRes, statsRes] = await Promise.all([
-      api.get("/tickets", { params: statusFilter ? { status: statusFilter } : {} }),
-      api.get("/users", { params: { role: "it_staff" } }),
-      api.get("/tickets/stats/overview"),
-    ]);
-    setTickets(tRes.data);
-    setStaff(sRes.data);
-    setStats(statsRes.data);
+    try {
+      const [tRes, sRes, statsRes] = await Promise.all([
+        api.get("/tickets", {
+          params: statusFilter ? { status: statusFilter } : {},
+        }),
+        api.get("/users", { params: { role: "it_staff" } }),
+        api.get("/tickets/stats/overview"),
+      ]);
+      setTickets(tRes.data);
+      setStaff(sRes.data);
+      setStats(statsRes.data);
+    } catch (err) {
+      toast.error("Could not load dashboard");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -28,140 +68,290 @@ export default function AdminDashboard() {
 
   async function assign(ticketId, assigneeId) {
     if (!assigneeId) return;
-    await api.put(`/tickets/${ticketId}/assign`, { assigneeId: Number(assigneeId) });
-    await loadAll();
+    try {
+      await api.put(`/tickets/${ticketId}/assign`, {
+        assigneeId: Number(assigneeId),
+      });
+      toast.success("Ticket assigned");
+      await loadAll();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Could not assign");
+    }
   }
 
   return (
-    <div className="min-h-screen">
-      <TopBar title="Admin — All Tickets" />
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <Layout
+      title="Admin — All Tickets"
+      subtitle="Monitor, assign, and resolve tickets across all offices"
+    >
+      <div className="space-y-6">
+        {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            <Stat label="Open" value={stats.open} />
-            <Stat label="Assigned" value={stats.assigned} />
-            <Stat label="In progress" value={stats.inProgress} />
-            <Stat label="Resolved" value={stats.resolved} />
-            <Stat label="Closed" value={stats.closed} />
-            <Stat label="Total" value={stats.total} highlight />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Stat icon={AlertCircle} label="Open" value={stats.open} tone="amber" />
+            <Stat
+              icon={UserPlus}
+              label="Assigned"
+              value={stats.assigned}
+              tone="sky"
+            />
+            <Stat
+              icon={Loader}
+              label="In Progress"
+              value={stats.inProgress}
+              tone="brand"
+            />
+            <Stat
+              icon={CheckCircle2}
+              label="Resolved"
+              value={stats.resolved}
+              tone="emerald"
+            />
+            <Stat
+              icon={Inbox}
+              label="Closed"
+              value={stats.closed}
+              tone="slate"
+            />
+            <Stat
+              icon={TrendingUp}
+              label="Total"
+              value={stats.total}
+              tone="dark"
+            />
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            {["", "open", "assigned", "in_progress", "resolved", "closed"].map((s) => (
+        {/* Filter + Add staff */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-slate-400 mr-1" />
+            {filters.map((f) => (
               <button
-                key={s || "all"}
-                onClick={() => setStatusFilter(s)}
-                className={`text-xs px-3 py-1.5 rounded-full border ${
-                  statusFilter === s
-                    ? "bg-slate-800 text-white border-slate-800"
-                    : "border-slate-300 text-slate-600 hover:bg-slate-100"
-                }`}
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-lg border font-medium transition",
+                  statusFilter === f.value
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                )}
               >
-                {s === "" ? "All" : s.replace("_", " ")}
+                {f.label}
               </button>
             ))}
           </div>
-          <button
+          <Button
+            variant={showAddStaff ? "outline" : "primary"}
             onClick={() => setShowAddStaff((v) => !v)}
-            className="text-sm px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
           >
-            {showAddStaff ? "Close" : "+ Add IT staff"}
-          </button>
+            {showAddStaff ? (
+              <>
+                <X className="w-4 h-4" /> Close
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" /> Add IT Staff
+              </>
+            )}
+          </Button>
         </div>
 
-        {showAddStaff && (
-          <AddStaffForm
-            onCreated={() => {
-              setShowAddStaff(false);
-              loadAll();
-            }}
-          />
-        )}
-
-        <div className="space-y-3">
-          {tickets.map((t) => (
-            <div key={t.id} className="bg-white rounded-2xl border border-slate-200 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{t.title}</h3>
-                  <p className="text-sm text-slate-500 mt-1">{t.description}</p>
-                </div>
-                <StatusBadge status={t.status} />
-              </div>
-
-              {/* Attachment: image or video from the employee */}
-              {t.attachmentUrl && (
-                <div className="mt-3">
-                  <p className="text-xs text-slate-500 mb-1">Attachment from reporter:</p>
-                  {t.attachmentType === "image" ? (
-                    <a href={t.attachmentUrl} target="_blank" rel="noreferrer">
-                      <img
-                        src={t.attachmentUrl}
-                        alt="attachment"
-                        className="rounded-lg max-h-60 object-cover border border-slate-200"
-                      />
-                    </a>
-                  ) : (
-                    <video
-                      src={t.attachmentUrl}
-                      controls
-                      className="rounded-lg max-h-60 border border-slate-200"
-                    />
-                  )}
-                </div>
-              )}
-
-              <div className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                <span>Priority: {t.priority}</span>
-                {t.reporter && (
-                  <span>
-                    Reported by: {t.reporter.name} ({t.reporter.office || "—"})
-                  </span>
-                )}
-                {t.assignee && <span>Assigned to: {t.assignee.name}</span>}
-              </div>
-
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-slate-500">Assign to:</span>
-                <select
-                  defaultValue={t.assigneeId || ""}
-                  onChange={(e) => assign(t.id, e.target.value)}
-                  className="text-sm rounded-lg border border-slate-300 px-2 py-1"
-                >
-                  <option value="">Select IT staff…</option>
-                  {staff.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} {s.office ? `(${s.office})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          ))}
-          {tickets.length === 0 && (
-            <p className="text-slate-500 text-sm">No tickets match this filter.</p>
+        {/* Add staff form */}
+        <AnimatePresence>
+          {showAddStaff && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <AddStaffForm
+                onCreated={() => {
+                  setShowAddStaff(false);
+                  loadAll();
+                }}
+              />
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* Tickets */}
+        <div className="space-y-3">
+          {loading && (
+            <>
+              <Skeleton className="h-40" />
+              <Skeleton className="h-40" />
+            </>
+          )}
+
+          {!loading && tickets.length === 0 && (
+            <EmptyState
+              icon={Inbox}
+              title="No tickets"
+              description="No tickets match this filter right now."
+            />
+          )}
+
+          {!loading &&
+            tickets.map((t, i) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <Card className="hover:shadow-card transition-shadow">
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            #{String(t.id).padStart(4, "0")}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-slate-900 truncate">
+                          {t.title}
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                          {t.description}
+                        </p>
+                      </div>
+                      <StatusBadge status={t.status} />
+                    </div>
+
+                    {/* Attachment */}
+                    {t.attachmentUrl && (
+                      <div className="mt-4">
+                        <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
+                          Attachment from reporter
+                        </p>
+                        {t.attachmentType === "image" ? (
+                          <a
+                            href={t.attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              src={t.attachmentUrl}
+                              alt="attachment"
+                              className="rounded-xl max-h-64 object-cover border border-slate-200 hover:opacity-90 transition"
+                            />
+                          </a>
+                        ) : (
+                          <video
+                            src={t.attachmentUrl}
+                            controls
+                            className="rounded-xl max-h-64 border border-slate-200"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Meta */}
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                      <span className="capitalize">
+                        Priority: {t.priority}
+                      </span>
+                      {t.reporter && (
+                        <span className="flex items-center gap-1.5">
+                          <Avatar name={t.reporter.name} size="sm" />
+                          <span className="font-medium text-slate-700">
+                            {t.reporter.name}
+                          </span>
+                          {t.reporter.office && (
+                            <span className="flex items-center gap-1 text-slate-400">
+                              · <Building2 className="w-3 h-3" />
+                              {t.reporter.office}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {t.assignee && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-slate-400">→</span>
+                          <Avatar name={t.assignee.name} size="sm" />
+                          <span className="font-medium text-slate-700">
+                            {t.assignee.name}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Assign */}
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
+                      <span className="text-xs font-medium text-slate-500">
+                        Assign to:
+                      </span>
+                      <select
+                        defaultValue={t.assigneeId || ""}
+                        onChange={(e) => assign(t.id, e.target.value)}
+                        className="text-sm rounded-xl border border-slate-300 px-3 py-2 bg-white hover:border-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
+                      >
+                        <option value="">Select IT staff…</option>
+                        {staff.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} {s.office ? `(${s.office})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }
 
-function Stat({ label, value, highlight }) {
+/* ---------- Stat card ---------- */
+const toneClasses = {
+  amber: "bg-amber-50 text-amber-600 border-amber-100",
+  sky: "bg-sky-50 text-sky-600 border-sky-100",
+  brand: "bg-brand-50 text-brand-600 border-brand-100",
+  emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  slate: "bg-slate-100 text-slate-600 border-slate-200",
+  dark: "bg-slate-900 text-white border-slate-900",
+};
+
+function Stat({ icon: Icon, label, value, tone = "slate" }) {
+  const isDark = tone === "dark";
   return (
-    <div
-      className={`rounded-xl border p-3 text-center ${
-        highlight ? "bg-slate-800 text-white border-slate-800" : "bg-white border-slate-200"
-      }`}
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "rounded-2xl border p-4 shadow-soft",
+        isDark ? toneClasses.dark : "bg-white border-slate-200"
+      )}
     >
-      <div className="text-lg font-semibold">{value ?? "—"}</div>
-      <div className="text-xs opacity-70">{label}</div>
-    </div>
+      <div
+        className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center mb-2 border",
+          isDark ? "bg-white/10 border-white/20" : toneClasses[tone]
+        )}
+      >
+        <Icon className={cn("w-4 h-4", isDark && "text-white")} />
+      </div>
+      <div className={cn("text-2xl font-bold", isDark ? "text-white" : "text-slate-900")}>
+        {value ?? "—"}
+      </div>
+      <div
+        className={cn(
+          "text-[11px] font-medium uppercase tracking-wide mt-0.5",
+          isDark ? "text-slate-400" : "text-slate-500"
+        )}
+      >
+        {label}
+      </div>
+    </motion.div>
   );
 }
 
+/* ---------- Add staff form ---------- */
 function AddStaffForm({ onCreated }) {
   const [form, setForm] = useState({
     name: "",
@@ -170,65 +360,85 @@ function AddStaffForm({ onCreated }) {
     role: "it_staff",
     office: "",
   });
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setLoading(true);
     try {
       await api.post("/users", form);
+      toast.success("Account created");
       onCreated();
     } catch (err) {
-      setError(err.response?.data?.error || "Could not create account");
+      toast.error(err.response?.data?.error || "Could not create account");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-2xl border border-slate-200 p-5 grid sm:grid-cols-2 gap-3"
-    >
-      <input
-        required
-        placeholder="Full name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      />
-      <input
-        required
-        type="email"
-        placeholder="Email"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      />
-      <input
-        required
-        type="password"
-        placeholder="Temporary password"
-        value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      />
-      <select
-        value={form.role}
-        onChange={(e) => setForm({ ...form, role: e.target.value })}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      >
-        <option value="it_staff">IT staff</option>
-        <option value="admin">Admin / boss</option>
-      </select>
-      <input
-        placeholder="Office / branch"
-        value={form.office}
-        onChange={(e) => setForm({ ...form, office: e.target.value })}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
-      />
-      {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-      <button className="sm:col-span-2 bg-slate-800 text-white rounded-lg py-2 text-sm font-medium hover:bg-slate-900">
-        Create account
-      </button>
-    </form>
+    <Card>
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+            <UserPlus className="w-4 h-4 text-brand-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm text-slate-900">
+              Create new account
+            </h3>
+            <p className="text-xs text-slate-500">
+              IT staff or another admin
+            </p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Input
+            required
+            label="Full name"
+            placeholder="Jane Doe"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <Input
+            required
+            type="email"
+            label="Email"
+            placeholder="jane@company.com"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            required
+            type="password"
+            label="Temporary password"
+            placeholder="Min. 8 chars"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <Select
+            label="Role"
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+          >
+            <option value="it_staff">IT Staff</option>
+            <option value="admin">Admin / Boss</option>
+          </Select>
+          <div className="sm:col-span-2">
+            <Input
+              label="Office / branch (optional)"
+              placeholder="e.g. Headquarters"
+              value={form.office}
+              onChange={(e) => setForm({ ...form, office: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <Button type="submit" loading={loading} className="w-full" size="lg">
+          {loading ? "Creating…" : "Create account"}
+        </Button>
+      </form>
+    </Card>
   );
 }
