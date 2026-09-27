@@ -6,6 +6,9 @@ import StatusBadge from "../components/StatusBadge.jsx";
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
   const [form, setForm] = useState({ title: "", description: "", category: "", priority: "medium" });
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,16 +21,59 @@ export default function EmployeeDashboard() {
     loadTickets();
   }, []);
 
+  function handleFileChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
+      setError("Only images or videos are allowed");
+      return;
+    }
+    if (f.size > 20 * 1024 * 1024) {
+      setError("File must be under 20 MB");
+      return;
+    }
+
+    setError("");
+    setFile(f);
+    setFilePreview(URL.createObjectURL(f));
+  }
+
+  function clearFile() {
+    setFile(null);
+    if (filePreview) URL.revokeObjectURL(filePreview);
+    setFilePreview(null);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+
     try {
-      await api.post("/tickets", form);
+      let attachmentUrl = null;
+      let attachmentType = null;
+
+      if (file) {
+        setUploading(true);
+        const fd = new FormData();
+        fd.append("file", file);
+        const uploadRes = await api.post("/tickets/upload", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        attachmentUrl = uploadRes.data.url;
+        attachmentType = uploadRes.data.type;
+        setUploading(false);
+      }
+
+      await api.post("/tickets", { ...form, attachmentUrl, attachmentType });
+
       setForm({ title: "", description: "", category: "", priority: "medium" });
+      clearFile();
       await loadTickets();
     } catch (err) {
       setError(err.response?.data?.error || "Could not submit ticket");
+      setUploading(false);
     } finally {
       setSubmitting(false);
     }
@@ -72,12 +118,54 @@ export default function EmployeeDashboard() {
                 <option value="high">High priority</option>
                 <option value="urgent">Urgent</option>
               </select>
+
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">
+                  Attach image or video (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                />
+                {filePreview && (
+                  <div className="mt-2 relative">
+                    {file?.type.startsWith("image/") ? (
+                      <img
+                        src={filePreview}
+                        alt="preview"
+                        className="rounded-lg max-h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={filePreview}
+                        controls
+                        className="rounded-lg max-h-40 w-full"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={clearFile}
+                      className="absolute top-1 right-1 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700"
+                      title="Remove file"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button
                 disabled={submitting}
                 className="w-full bg-indigo-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
               >
-                {submitting ? "Submitting…" : "Submit ticket"}
+                {uploading
+                  ? "Uploading file…"
+                  : submitting
+                  ? "Submitting…"
+                  : "Submit ticket"}
               </button>
             </form>
           </div>
@@ -96,6 +184,27 @@ export default function EmployeeDashboard() {
                 </div>
                 <StatusBadge status={t.status} />
               </div>
+
+              {t.attachmentUrl && (
+                <div className="mt-3">
+                  {t.attachmentType === "image" ? (
+                    <a href={t.attachmentUrl} target="_blank" rel="noreferrer">
+                      <img
+                        src={t.attachmentUrl}
+                        alt="attachment"
+                        className="rounded-lg max-h-60 object-cover border border-slate-200"
+                      />
+                    </a>
+                  ) : (
+                    <video
+                      src={t.attachmentUrl}
+                      controls
+                      className="rounded-lg max-h-60 border border-slate-200"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
                 {t.category && <span>Category: {t.category}</span>}
                 <span>Priority: {t.priority}</span>

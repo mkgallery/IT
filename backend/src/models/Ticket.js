@@ -16,7 +16,7 @@ const Ticket = sequelize.define("Ticket", {
     allowNull: false,
   },
   category: {
-    type: DataTypes.STRING, // e.g. Hardware, Software, Network, Account
+    type: DataTypes.STRING,
     allowNull: true,
   },
   office: {
@@ -33,6 +33,14 @@ const Ticket = sequelize.define("Ticket", {
   },
   resolutionNotes: {
     type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  attachmentUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  attachmentType: {
+    type: DataTypes.STRING,
     allowNull: true,
   },
 });

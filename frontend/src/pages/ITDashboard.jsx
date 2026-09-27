@@ -44,10 +44,37 @@ export default function ITDashboard() {
               </div>
               <StatusBadge status={t.status} />
             </div>
+
+            {/* Attachment: image or video from the employee */}
+            {t.attachmentUrl && (
+              <div className="mt-3">
+                <p className="text-xs text-slate-500 mb-1">Attachment from reporter:</p>
+                {t.attachmentType === "image" ? (
+                  <a href={t.attachmentUrl} target="_blank" rel="noreferrer">
+                    <img
+                      src={t.attachmentUrl}
+                      alt="attachment"
+                      className="rounded-lg max-h-60 object-cover border border-slate-200"
+                    />
+                  </a>
+                ) : (
+                  <video
+                    src={t.attachmentUrl}
+                    controls
+                    className="rounded-lg max-h-60 border border-slate-200"
+                  />
+                )}
+              </div>
+            )}
+
             <div className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
               {t.category && <span>Category: {t.category}</span>}
               <span>Priority: {t.priority}</span>
-              {t.reporter && <span>Reported by: {t.reporter.name} ({t.reporter.office || "—"})</span>}
+              {t.reporter && (
+                <span>
+                  Reported by: {t.reporter.name} ({t.reporter.office || "—"})
+                </span>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -71,7 +98,9 @@ export default function ITDashboard() {
               <input
                 placeholder="Add resolution notes…"
                 defaultValue={t.resolutionNotes || ""}
-                onChange={(e) => setNotesDraft({ ...notesDraft, [t.id]: e.target.value })}
+                onChange={(e) =>
+                  setNotesDraft({ ...notesDraft, [t.id]: e.target.value })
+                }
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
               />
               <button

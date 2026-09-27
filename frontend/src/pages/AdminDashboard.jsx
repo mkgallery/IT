@@ -90,9 +90,36 @@ export default function AdminDashboard() {
                 </div>
                 <StatusBadge status={t.status} />
               </div>
+
+              {/* Attachment: image or video from the employee */}
+              {t.attachmentUrl && (
+                <div className="mt-3">
+                  <p className="text-xs text-slate-500 mb-1">Attachment from reporter:</p>
+                  {t.attachmentType === "image" ? (
+                    <a href={t.attachmentUrl} target="_blank" rel="noreferrer">
+                      <img
+                        src={t.attachmentUrl}
+                        alt="attachment"
+                        className="rounded-lg max-h-60 object-cover border border-slate-200"
+                      />
+                    </a>
+                  ) : (
+                    <video
+                      src={t.attachmentUrl}
+                      controls
+                      className="rounded-lg max-h-60 border border-slate-200"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
                 <span>Priority: {t.priority}</span>
-                {t.reporter && <span>Reported by: {t.reporter.name} ({t.reporter.office || "—"})</span>}
+                {t.reporter && (
+                  <span>
+                    Reported by: {t.reporter.name} ({t.reporter.office || "—"})
+                  </span>
+                )}
                 {t.assignee && <span>Assigned to: {t.assignee.name}</span>}
               </div>
 
@@ -113,7 +140,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           ))}
-          {tickets.length === 0 && <p className="text-slate-500 text-sm">No tickets match this filter.</p>}
+          {tickets.length === 0 && (
+            <p className="text-slate-500 text-sm">No tickets match this filter.</p>
+          )}
         </div>
       </div>
     </div>
@@ -122,7 +151,11 @@ export default function AdminDashboard() {
 
 function Stat({ label, value, highlight }) {
   return (
-    <div className={`rounded-xl border p-3 text-center ${highlight ? "bg-slate-800 text-white border-slate-800" : "bg-white border-slate-200"}`}>
+    <div
+      className={`rounded-xl border p-3 text-center ${
+        highlight ? "bg-slate-800 text-white border-slate-800" : "bg-white border-slate-200"
+      }`}
+    >
       <div className="text-lg font-semibold">{value ?? "—"}</div>
       <div className="text-xs opacity-70">{label}</div>
     </div>
@@ -130,7 +163,13 @@ function Stat({ label, value, highlight }) {
 }
 
 function AddStaffForm({ onCreated }) {
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "it_staff", office: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "it_staff",
+    office: "",
+  });
   const [error, setError] = useState("");
 
   async function handleSubmit(e) {
@@ -145,15 +184,47 @@ function AddStaffForm({ onCreated }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-5 grid sm:grid-cols-2 gap-3">
-      <input required placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-      <input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-      <input required type="password" placeholder="Temporary password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-      <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-2xl border border-slate-200 p-5 grid sm:grid-cols-2 gap-3"
+    >
+      <input
+        required
+        placeholder="Full name"
+        value={form.name}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      />
+      <input
+        required
+        type="email"
+        placeholder="Email"
+        value={form.email}
+        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      />
+      <input
+        required
+        type="password"
+        placeholder="Temporary password"
+        value={form.password}
+        onChange={(e) => setForm({ ...form, password: e.target.value })}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      />
+      <select
+        value={form.role}
+        onChange={(e) => setForm({ ...form, role: e.target.value })}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      >
         <option value="it_staff">IT staff</option>
         <option value="admin">Admin / boss</option>
       </select>
-      <input placeholder="Office / branch" value={form.office} onChange={(e) => setForm({ ...form, office: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
+      <input
+        placeholder="Office / branch"
+        value={form.office}
+        onChange={(e) => setForm({ ...form, office: e.target.value })}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
+      />
       {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
       <button className="sm:col-span-2 bg-slate-800 text-white rounded-lg py-2 text-sm font-medium hover:bg-slate-900">
         Create account

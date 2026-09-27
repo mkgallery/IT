@@ -1,15 +1,62 @@
 const express = require("express");
+const multer = require("multer");
 const { Ticket, User } = require("../models");
 const { authRequired, requireRole } = require("../middleware/auth");
+const cloudinary = require("../config/cloudinary");
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+});
 
 const publicUserAttrs = ["id", "name", "email", "office"];
 
-// Create a ticket (any authenticated user, typically an employee)
+// Upload an attachment (image or video) -> returns a Cloudinary URL
+router.post("/upload", authRequired, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    const isVideo = req.file.mimetype.startsWith("video/");
+    const isImage = req.file.mimetype.startsWith("image/");
+    if (!isVideo && !isImage) {
+      return res.status(400).json({ error: "Only images or videos are allowed" });
+    }
+
+    // Upload to Cloudinary from buffer
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "it-support-tickets",
+          resource_type: isVideo ? "video" : "image",
+        },
+        (err, result) => (err ? reject(err) : resolve(result))
+      );
+      stream.end(req.file.buffer);
+    });
+
+    res.json({
+      url: result.secure_url,
+      type: isVideo ? "video" : "image",
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create a ticket (any authenticated user)
 router.post("/", authRequired, async (req, res) => {
   try {
-    const { title, description, category, priority, office } = req.body;
+    const {
+      title,
+      description,
+      category,
+      priority,
+      office,
+      attachmentUrl,
+      attachmentType,
+    } = req.body;
     if (!title || !description) {
       return res.status(400).json({ error: "title and description are required" });
     }
@@ -21,6 +68,8 @@ router.post("/", authRequired, async (req, res) => {
       office: office || req.user.office,
       reporterId: req.user.id,
       status: "open",
+      attachmentUrl: attachmentUrl || null,
+      attachmentType: attachmentType || null,
     });
     res.status(201).json(ticket);
   } catch (err) {
@@ -28,10 +77,7 @@ router.post("/", authRequired, async (req, res) => {
   }
 });
 
-// List tickets - scoped by role:
-//   employee  -> only their own tickets
-//   it_staff  -> only tickets assigned to them
-//   admin     -> all tickets (can filter by ?status= & ?office=)
+// List tickets (scoped by role)
 router.get("/", authRequired, async (req, res) => {
   const where = {};
   if (req.query.status) where.status = req.query.status;
@@ -42,7 +88,6 @@ router.get("/", authRequired, async (req, res) => {
   } else if (req.user.role === "it_staff") {
     where.assigneeId = req.user.id;
   }
-  // admin sees everything (subject to optional filters above)
 
   const tickets = await Ticket.findAll({
     where,
@@ -55,7 +100,7 @@ router.get("/", authRequired, async (req, res) => {
   res.json(tickets);
 });
 
-// Get a single ticket (must be reporter, assignee, or admin)
+// Get single ticket
 router.get("/:id", authRequired, async (req, res) => {
   const ticket = await Ticket.findByPk(req.params.id, {
     include: [
@@ -73,7 +118,7 @@ router.get("/:id", authRequired, async (req, res) => {
   res.json(ticket);
 });
 
-// Admin: assign a ticket to an IT staff member
+// Admin: assign a ticket
 router.put("/:id/assign", authRequired, requireRole("admin"), async (req, res) => {
   try {
     const { assigneeId } = req.body;
@@ -92,7 +137,7 @@ router.put("/:id/assign", authRequired, requireRole("admin"), async (req, res) =
   }
 });
 
-// IT staff (or admin): update ticket status / add resolution notes
+// IT staff (or admin): update status / resolution notes
 router.put("/:id/status", authRequired, requireRole("it_staff", "admin"), async (req, res) => {
   try {
     const { status, resolutionNotes } = req.body;
@@ -116,7 +161,7 @@ router.put("/:id/status", authRequired, requireRole("it_staff", "admin"), async 
   }
 });
 
-// Admin: quick dashboard stats
+// Admin: dashboard stats
 router.get("/stats/overview", authRequired, requireRole("admin"), async (req, res) => {
   const [open, assigned, inProgress, resolved, closed, total] = await Promise.all([
     Ticket.count({ where: { status: "open" } }),
