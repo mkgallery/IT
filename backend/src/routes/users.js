@@ -21,8 +21,10 @@ router.get("/", authRequired, requireRole("admin"), async (req, res) => {
 router.post("/", authRequired, requireRole("admin"), async (req, res) => {
   try {
     const { name, email, password, role, office } = req.body;
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: "name, email, password, role are required" });
+    if (!name || !email || !password || !role || !office) {
+      return res.status(400).json({
+        error: "name, email, password, role, and office are required",
+      });
     }
     if (!["employee", "it_staff", "admin"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
@@ -86,10 +88,8 @@ router.delete("/:id", authRequired, requireRole("admin"), async (req, res) => {
     }
 
     if (user.role === "employee") {
-      // Delete all tickets reported by this user
       await Ticket.destroy({ where: { reporterId: id } });
     } else if (user.role === "it_staff") {
-      // Unassign all tickets assigned to this user, set them back to open
       await Ticket.update(
         { assigneeId: null, status: "open" },
         { where: { assigneeId: id } }

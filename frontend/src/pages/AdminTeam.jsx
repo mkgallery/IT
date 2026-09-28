@@ -275,7 +275,7 @@ function AddMemberForm({ onCreated }) {
             <option value="admin">Admin / Boss</option>
           </Select>
           <div className="sm:col-span-2">
-            <Input label="Office / branch (optional)" placeholder="e.g. Headquarters" value={form.office} onChange={(e) => setForm({ ...form, office: e.target.value })} />
+            <Input required label="Office / Location / Department" placeholder="e.g. Headquarters, IT Dept" value={form.office} onChange={(e) => setForm({ ...form, office: e.target.value })} />
           </div>
         </div>
 

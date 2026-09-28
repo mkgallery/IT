@@ -154,8 +154,9 @@ export default function Register() {
             <div className="relative">
               <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-[42px] pointer-events-none" />
               <Input
-                label="Office / branch (optional)"
-                placeholder="e.g. Headquarters"
+                label="Office / Location / Department"
+                required
+                placeholder="e.g. Headquarters, IT Dept"
                 value={form.office}
                 onChange={(e) => setForm({ ...form, office: e.target.value })}
                 className="pl-10"
