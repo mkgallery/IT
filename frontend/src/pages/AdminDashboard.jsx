@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Ticket as TicketIcon,
   Building2,
@@ -6,7 +6,6 @@ import {
   Filter,
   TrendingUp,
   AlertCircle,
-  Users,
   CheckCircle2,
   Loader,
   Inbox,
@@ -41,6 +40,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState("");
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   async function loadAll() {
     try {
@@ -79,10 +79,31 @@ export default function AdminDashboard() {
     }
   }
 
+  // Client-side search filter
+  const filteredTickets = useMemo(() => {
+    if (!search.trim()) return tickets;
+    const q = search.toLowerCase();
+    return tickets.filter((t) => {
+      const id = String(t.id).padStart(4, "0");
+      return (
+        t.title?.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q) ||
+        id.includes(q) ||
+        t.reporter?.name?.toLowerCase().includes(q) ||
+        t.reporter?.office?.toLowerCase().includes(q) ||
+        t.assignee?.name?.toLowerCase().includes(q) ||
+        t.category?.toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, search]);
+
   return (
     <Layout
       title="Admin — All Tickets"
       subtitle="Monitor, assign, and resolve tickets across all offices"
+      searchable
+      onSearch={setSearch}
+      searchPlaceholder="Search by title, reporter, ID…"
     >
       <div className="space-y-6">
         {/* Stats */}
@@ -107,12 +128,7 @@ export default function AdminDashboard() {
               value={stats.resolved}
               tone="emerald"
             />
-            <Stat
-              icon={Inbox}
-              label="Closed"
-              value={stats.closed}
-              tone="slate"
-            />
+            <Stat icon={Inbox} label="Closed" value={stats.closed} tone="slate" />
             <Stat
               icon={TrendingUp}
               label="Total"
@@ -176,6 +192,15 @@ export default function AdminDashboard() {
           )}
         </AnimatePresence>
 
+        {/* Search hint */}
+        {search && !loading && (
+          <p className="text-xs text-slate-500">
+            Showing {filteredTickets.length} of {tickets.length} ticket
+            {tickets.length !== 1 ? "s" : ""} matching "
+            <span className="font-medium text-slate-700">{search}</span>"
+          </p>
+        )}
+
         {/* Tickets */}
         <div className="space-y-3">
           {loading && (
@@ -185,16 +210,20 @@ export default function AdminDashboard() {
             </>
           )}
 
-          {!loading && tickets.length === 0 && (
+          {!loading && filteredTickets.length === 0 && (
             <EmptyState
               icon={Inbox}
-              title="No tickets"
-              description="No tickets match this filter right now."
+              title={search ? "No matches" : "No tickets"}
+              description={
+                search
+                  ? "Try a different search term."
+                  : "No tickets match this filter right now."
+              }
             />
           )}
 
           {!loading &&
-            tickets.map((t, i) => (
+            filteredTickets.map((t, i) => (
               <motion.div
                 key={t.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -427,8 +456,9 @@ function AddStaffForm({ onCreated }) {
           </Select>
           <div className="sm:col-span-2">
             <Input
-              label="Office / branch (optional)"
-              placeholder="e.g. Headquarters"
+              required
+              label="Office / Location / Department"
+              placeholder="e.g. Headquarters, IT Dept"
               value={form.office}
               onChange={(e) => setForm({ ...form, office: e.target.value })}
             />

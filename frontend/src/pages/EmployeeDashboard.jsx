@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Plus,
-  Image as ImageIcon,
   X,
   Ticket as TicketIcon,
   Send,
@@ -23,6 +22,7 @@ import Skeleton from "../components/ui/Skeleton";
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -104,10 +104,29 @@ export default function EmployeeDashboard() {
     }
   }
 
+  // Client-side search filter (only applies to the tickets list)
+  const filteredTickets = useMemo(() => {
+    if (!search.trim()) return tickets;
+    const q = search.toLowerCase();
+    return tickets.filter((t) => {
+      const id = String(t.id).padStart(4, "0");
+      return (
+        t.title?.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q) ||
+        id.includes(q) ||
+        t.category?.toLowerCase().includes(q) ||
+        t.assignee?.name?.toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, search]);
+
   return (
     <Layout
       title="My Tickets"
       subtitle="Report IT issues and track their progress"
+      searchable
+      onSearch={setSearch}
+      searchPlaceholder="Search my tickets…"
     >
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Form column */}
@@ -233,7 +252,11 @@ export default function EmployeeDashboard() {
                   className="w-full"
                   size="lg"
                 >
-                  {uploading ? "Uploading…" : submitting ? "Submitting…" : "Submit ticket"}
+                  {uploading
+                    ? "Uploading…"
+                    : submitting
+                    ? "Submitting…"
+                    : "Submit ticket"}
                   {!uploading && !submitting && <Send className="w-4 h-4" />}
                 </Button>
               </form>
@@ -258,8 +281,24 @@ export default function EmployeeDashboard() {
             />
           )}
 
+          {!loading && search && tickets.length > 0 && (
+            <p className="text-xs text-slate-500">
+              Showing {filteredTickets.length} of {tickets.length} ticket
+              {tickets.length !== 1 ? "s" : ""} matching "
+              <span className="font-medium text-slate-700">{search}</span>"
+            </p>
+          )}
+
+          {!loading && filteredTickets.length === 0 && tickets.length > 0 && (
+            <EmptyState
+              icon={Inbox}
+              title="No matches"
+              description="Try a different search term."
+            />
+          )}
+
           {!loading &&
-            tickets.map((t, i) => (
+            filteredTickets.map((t, i) => (
               <motion.div
                 key={t.id}
                 initial={{ opacity: 0, y: 8 }}

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LifeBuoy,
-  Ticket,
   LayoutDashboard,
   Users,
   LogOut,
@@ -10,6 +9,7 @@ import {
   X,
   ChevronRight,
   BarChart3,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -30,10 +30,19 @@ const roleHome = {
   super_admin: "/admin",
 };
 
-export default function Layout({ title, subtitle, children, actions }) {
+export default function Layout({
+  title,
+  subtitle,
+  children,
+  actions,
+  searchable = false,
+  onSearch,
+  searchPlaceholder = "Search tickets…",
+}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
@@ -64,6 +73,12 @@ export default function Layout({ title, subtitle, children, actions }) {
   function handleLogout() {
     logout();
     navigate("/login");
+  }
+
+  function handleSearchChange(e) {
+    const value = e.target.value;
+    setQuery(value);
+    if (onSearch) onSearch(value);
   }
 
   const SidebarContent = (
@@ -194,6 +209,7 @@ export default function Layout({ title, subtitle, children, actions }) {
             >
               <Menu className="w-5 h-5" />
             </button>
+
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-lg text-slate-900 truncate">
                 {title}
@@ -202,6 +218,20 @@ export default function Layout({ title, subtitle, children, actions }) {
                 <p className="text-xs text-slate-500 truncate">{subtitle}</p>
               )}
             </div>
+
+            {searchable && (
+              <div className="relative hidden md:block w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={handleSearchChange}
+                  placeholder={searchPlaceholder}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
+                />
+              </div>
+            )}
+
             {actions && <div className="flex items-center gap-2">{actions}</div>}
           </div>
         </header>

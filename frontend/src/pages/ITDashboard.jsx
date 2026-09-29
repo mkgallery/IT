@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Ticket as TicketIcon,
-  User as UserIcon,
   Building2,
   Save,
   MessageSquare,
@@ -25,6 +24,7 @@ export default function ITDashboard() {
   const [loading, setLoading] = useState(true);
   const [notesDraft, setNotesDraft] = useState({});
   const [savingId, setSavingId] = useState(null);
+  const [search, setSearch] = useState("");
 
   async function loadTickets() {
     try {
@@ -66,10 +66,30 @@ export default function ITDashboard() {
     }
   }
 
+  // Client-side search filter
+  const filteredTickets = useMemo(() => {
+    if (!search.trim()) return tickets;
+    const q = search.toLowerCase();
+    return tickets.filter((t) => {
+      const id = String(t.id).padStart(4, "0");
+      return (
+        t.title?.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q) ||
+        id.includes(q) ||
+        t.reporter?.name?.toLowerCase().includes(q) ||
+        t.reporter?.office?.toLowerCase().includes(q) ||
+        t.category?.toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, search]);
+
   return (
     <Layout
       title="Assigned to Me"
       subtitle="Tickets assigned to you — update status and add resolution notes"
+      searchable
+      onSearch={setSearch}
+      searchPlaceholder="Search assigned tickets…"
     >
       <div className="space-y-4 max-w-4xl">
         {loading && (
@@ -87,8 +107,24 @@ export default function ITDashboard() {
           />
         )}
 
+        {!loading && search && tickets.length > 0 && (
+          <p className="text-xs text-slate-500">
+            Showing {filteredTickets.length} of {tickets.length} ticket
+            {tickets.length !== 1 ? "s" : ""} matching "
+            <span className="font-medium text-slate-700">{search}</span>"
+          </p>
+        )}
+
+        {!loading && filteredTickets.length === 0 && tickets.length > 0 && (
+          <EmptyState
+            icon={Inbox}
+            title="No matches"
+            description="Try a different search term."
+          />
+        )}
+
         {!loading &&
-          tickets.map((t, i) => (
+          filteredTickets.map((t, i) => (
             <motion.div
               key={t.id}
               initial={{ opacity: 0, y: 8 }}
