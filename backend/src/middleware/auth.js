@@ -17,7 +17,17 @@ function authRequired(req, res, next) {
 
 function requireRole(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+
+    // Super admin is allowed wherever "admin" is required
+    const effectiveRoles = [...roles];
+    if (roles.includes("admin") && !effectiveRoles.includes("super_admin")) {
+      effectiveRoles.push("super_admin");
+    }
+
+    if (!effectiveRoles.includes(req.user.role)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
     next();

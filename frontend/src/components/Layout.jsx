@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -19,12 +20,14 @@ const roleLabels = {
   employee: "Employee",
   it_staff: "IT Staff",
   admin: "Administrator",
+  super_admin: "Super Admin",
 };
 
 const roleHome = {
   employee: "/employee",
   it_staff: "/it",
   admin: "/admin",
+  super_admin: "/admin",
 };
 
 export default function Layout({ title, subtitle, children, actions }) {
@@ -32,11 +35,31 @@ export default function Layout({ title, subtitle, children, actions }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
- const navItems = [
-  { to: roleHome[user?.role] || "/", label: "Dashboard", icon: LayoutDashboard, show: true, end: true },
-  { to: "/admin", label: "All Tickets", icon: Ticket, show: user?.role === "admin", end: true },
-  { to: "/admin/team", label: "Team", icon: Users, show: user?.role === "admin", end: true },
-].filter((i) => i.show);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+
+  const navItems = [
+    {
+      to: roleHome[user?.role] || "/",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      show: true,
+      end: true,
+    },
+    {
+      to: "/admin/analytics",
+      label: "Analytics",
+      icon: BarChart3,
+      show: isAdmin,
+      end: true,
+    },
+    {
+      to: "/admin/team",
+      label: "Team",
+      icon: Users,
+      show: isAdmin,
+      end: true,
+    },
+  ].filter((i) => i.show);
 
   function handleLogout() {
     logout();
@@ -66,7 +89,7 @@ export default function Layout({ title, subtitle, children, actions }) {
             <NavLink
               key={item.label}
               to={item.to}
-              end
+              end={item.end}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
@@ -81,7 +104,9 @@ export default function Layout({ title, subtitle, children, actions }) {
                   <Icon
                     className={cn(
                       "w-4 h-4 transition-colors",
-                      isActive ? "text-brand-400" : "text-slate-500 group-hover:text-slate-300"
+                      isActive
+                        ? "text-brand-400"
+                        : "text-slate-500 group-hover:text-slate-300"
                     )}
                   />
                   <span>{item.label}</span>

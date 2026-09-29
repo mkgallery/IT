@@ -7,12 +7,14 @@ import {
   Search,
   Shield,
   ShieldCheck,
+  Crown,
   User as UserIcon,
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import api from "../api";
+import { useAuth } from "../context/AuthContext.jsx";
 import Layout from "../components/Layout";
 import Button from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -23,12 +25,32 @@ import Skeleton from "../components/ui/Skeleton";
 import { cn } from "../lib/utils";
 
 const roleConfig = {
-  admin: { label: "Admin", icon: ShieldCheck, cls: "bg-rose-50 text-rose-700 border-rose-200" },
-  it_staff: { label: "IT Staff", icon: Shield, cls: "bg-brand-50 text-brand-700 border-brand-200" },
-  employee: { label: "Employee", icon: UserIcon, cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  super_admin: {
+    label: "Super Admin",
+    icon: Crown,
+    cls: "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  admin: {
+    label: "Admin",
+    icon: ShieldCheck,
+    cls: "bg-rose-50 text-rose-700 border-rose-200",
+  },
+  it_staff: {
+    label: "IT Staff",
+    icon: Shield,
+    cls: "bg-brand-50 text-brand-700 border-brand-200",
+  },
+  employee: {
+    label: "Employee",
+    icon: UserIcon,
+    cls: "bg-slate-100 text-slate-600 border-slate-200",
+  },
 };
 
 export default function AdminTeam() {
+  const { user: me } = useAuth();
+  const isSuper = me?.role === "super_admin";
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -63,13 +85,41 @@ export default function AdminTeam() {
     );
   });
 
+  // Whether the logged-in user can act on this target user
+  function canReset(target) {
+    if (target.id === me?.id) return true;
+    const targetIsPrivileged =
+      target.role === "admin" || target.role === "super_admin";
+    if (targetIsPrivileged && !isSuper) return false;
+    return true;
+  }
+
+  function canDelete(target) {
+    if (target.id === me?.id) return false;
+    const targetIsPrivileged =
+      target.role === "admin" || target.role === "super_admin";
+    if (targetIsPrivileged && !isSuper) return false;
+    return true;
+  }
+
   return (
     <Layout
       title="Team"
       subtitle="Manage users, reset passwords, and remove accounts"
       actions={
-        <Button onClick={() => setShowAdd((v) => !v)} variant={showAdd ? "outline" : "primary"}>
-          {showAdd ? <><X className="w-4 h-4" /> Close</> : <><UserPlus className="w-4 h-4" /> Add member</>}
+        <Button
+          onClick={() => setShowAdd((v) => !v)}
+          variant={showAdd ? "outline" : "primary"}
+        >
+          {showAdd ? (
+            <>
+              <X className="w-4 h-4" /> Close
+            </>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" /> Add member
+            </>
+          )}
         </Button>
       }
     >
@@ -83,7 +133,13 @@ export default function AdminTeam() {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <AddMemberForm onCreated={() => { setShowAdd(false); load(); }} />
+              <AddMemberForm
+                isSuper={isSuper}
+                onCreated={() => {
+                  setShowAdd(false);
+                  load();
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -99,9 +155,10 @@ export default function AdminTeam() {
               className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 py-2.5 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
             />
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {[
               { v: "", label: "All" },
+              { v: "super_admin", label: "Super Admins" },
               { v: "admin", label: "Admins" },
               { v: "it_staff", label: "IT Staff" },
               { v: "employee", label: "Employees" },
@@ -145,6 +202,8 @@ export default function AdminTeam() {
               {filtered.map((u) => {
                 const rc = roleConfig[u.role] || roleConfig.employee;
                 const RIcon = rc.icon;
+                const isMe = u.id === me?.id;
+
                 return (
                   <motion.div
                     key={u.id}
@@ -158,7 +217,17 @@ export default function AdminTeam() {
                         <div className="font-semibold text-slate-900 truncate">
                           {u.name}
                         </div>
-                        <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border", rc.cls)}>
+                        {isMe && (
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                            You
+                          </span>
+                        )}
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border",
+                            rc.cls
+                          )}
+                        >
                           <RIcon className="w-3 h-3" />
                           {rc.label}
                         </span>
@@ -169,14 +238,16 @@ export default function AdminTeam() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setResetUser(u)}
-                        title="Reset password"
-                        className="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition"
-                      >
-                        <Key className="w-4 h-4" />
-                      </button>
-                      {u.role !== "admin" && (
+                      {canReset(u) && (
+                        <button
+                          onClick={() => setResetUser(u)}
+                          title="Reset password"
+                          className="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition"
+                        >
+                          <Key className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDelete(u) && (
                         <button
                           onClick={() => setDeleteUser(u)}
                           title="Delete user"
@@ -228,7 +299,7 @@ export default function AdminTeam() {
 }
 
 /* ---------- Add member form ---------- */
-function AddMemberForm({ onCreated }) {
+function AddMemberForm({ onCreated, isSuper }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -260,22 +331,57 @@ function AddMemberForm({ onCreated }) {
             <UserPlus className="w-4 h-4 text-brand-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-slate-900">Create new member</h3>
-            <p className="text-xs text-slate-500">Add an employee, IT staff, or admin</p>
+            <h3 className="font-semibold text-sm text-slate-900">
+              Create new member
+            </h3>
+            <p className="text-xs text-slate-500">
+              Add an employee, IT staff, or admin
+            </p>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Input required label="Full name" placeholder="Jane Doe" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input required type="email" label="Email" placeholder="jane@company.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Input required type="password" label="Temporary password" placeholder="Min. 8 chars" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+          <Input
+            required
+            label="Full name"
+            placeholder="Jane Doe"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <Input
+            required
+            type="email"
+            label="Email"
+            placeholder="jane@company.com"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            required
+            type="password"
+            label="Temporary password"
+            placeholder="Min. 8 chars"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <Select
+            label="Role"
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+          >
             <option value="employee">Employee</option>
             <option value="it_staff">IT Staff</option>
             <option value="admin">Admin / Boss</option>
+            {isSuper && <option value="super_admin">Super Admin</option>}
           </Select>
           <div className="sm:col-span-2">
-            <Input required label="Office / Location / Department" placeholder="e.g. Headquarters, IT Dept" value={form.office} onChange={(e) => setForm({ ...form, office: e.target.value })} />
+            <Input
+              required
+              label="Office / Location / Department"
+              placeholder="e.g. Headquarters, IT Dept"
+              value={form.office}
+              onChange={(e) => setForm({ ...form, office: e.target.value })}
+            />
           </div>
         </div>
 
@@ -316,7 +422,8 @@ function ResetPasswordModal({ user, onClose }) {
           <div>
             <h3 className="font-semibold text-slate-900">Reset password</h3>
             <p className="text-xs text-slate-500">
-              Set a new temporary password for <span className="font-medium">{user.name}</span>
+              Set a new temporary password for{" "}
+              <span className="font-medium">{user.name}</span>
             </p>
           </div>
         </div>
@@ -331,7 +438,12 @@ function ResetPasswordModal({ user, onClose }) {
         />
 
         <div className="flex gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
             Cancel
           </Button>
           <Button type="submit" loading={loading} className="flex-1">
@@ -355,6 +467,7 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
 
   const isEmployee = user.role === "employee";
   const isStaff = user.role === "it_staff";
+  const isPrivileged = user.role === "admin" || user.role === "super_admin";
 
   return (
     <Modal onClose={onClose}>
@@ -364,17 +477,33 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
             <Trash2 className="w-5 h-5 text-red-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900">Delete {user.name}?</h3>
-            <p className="text-xs text-slate-500">This action cannot be undone.</p>
+            <h3 className="font-semibold text-slate-900">
+              Delete {user.name}?
+            </h3>
+            <p className="text-xs text-slate-500">
+              This action cannot be undone.
+            </p>
           </div>
         </div>
 
         <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-800">
           {isEmployee && (
-            <>All tickets reported by this employee will also be permanently deleted.</>
+            <>
+              All tickets reported by this employee will also be permanently
+              deleted.
+            </>
           )}
           {isStaff && (
-            <>Tickets assigned to this IT staff member will be unassigned and set back to <b>Open</b> so you can reassign them.</>
+            <>
+              Tickets assigned to this IT staff member will be unassigned and
+              set back to <b>Open</b> so you can reassign them.
+            </>
+          )}
+          {isPrivileged && (
+            <>
+              This is a privileged account. Deleting it will remove admin
+              access immediately.
+            </>
           )}
         </div>
 
@@ -382,7 +511,12 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button variant="danger" onClick={handle} loading={loading} className="flex-1">
+          <Button
+            variant="danger"
+            onClick={handle}
+            loading={loading}
+            className="flex-1"
+          >
             {loading ? "Deleting…" : "Yes, delete"}
           </Button>
         </div>

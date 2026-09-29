@@ -18,6 +18,7 @@ router.get("/", authRequired, requireRole("admin"), async (req, res) => {
 });
 
 // Admin: create an IT staff or admin account
+// Only a super_admin may create another super_admin.
 router.post("/", authRequired, requireRole("admin"), async (req, res) => {
   try {
     const { name, email, password, role, office } = req.body;
@@ -26,9 +27,14 @@ router.post("/", authRequired, requireRole("admin"), async (req, res) => {
         error: "name, email, password, role, and office are required",
       });
     }
-    if (!["employee", "it_staff", "admin"].includes(role)) {
-      return res.status(400).json({ error: "Invalid role" });
+
+    const allowedRoles = ["employee", "it_staff", "admin"];
+    if (req.user.role === "super_admin") allowedRoles.push("super_admin");
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ error: "Invalid or forbidden role" });
     }
+
     const existing = await User.findOne({ where: { email } });
     if (existing) return res.status(409).json({ error: "Email already registered" });
 
@@ -47,6 +53,8 @@ router.post("/", authRequired, requireRole("admin"), async (req, res) => {
 });
 
 // Admin: reset a user's password
+// - Regular admin cannot reset another admin's / super_admin's password
+// - Super admin can reset anyone's password
 router.put("/:id/password", authRequired, requireRole("admin"), async (req, res) => {
   try {
     const { password } = req.body;
@@ -56,6 +64,13 @@ router.put("/:id/password", authRequired, requireRole("admin"), async (req, res)
 
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    const targetIsPrivileged = user.role === "admin" || user.role === "super_admin";
+    if (req.user.role !== "super_admin" && targetIsPrivileged) {
+      return res.status(403).json({
+        error: "Only a super admin can reset another admin's password",
+      });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
     user.password = hashed;
@@ -68,8 +83,10 @@ router.put("/:id/password", authRequired, requireRole("admin"), async (req, res)
 });
 
 // Admin: delete a user
+// Rules:
 // - Cannot delete yourself
-// - Cannot delete other admins (safety)
+// - Regular admin can only delete employee or it_staff
+// - Super admin can also delete admins and other super_admins
 // - Deleting an employee also deletes their REPORTED tickets
 // - Deleting an IT staff UNASSIGNS their assigned tickets (status -> open)
 router.delete("/:id", authRequired, requireRole("admin"), async (req, res) => {
@@ -83,8 +100,11 @@ router.delete("/:id", authRequired, requireRole("admin"), async (req, res) => {
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.role === "admin") {
-      return res.status(403).json({ error: "Admin accounts cannot be deleted" });
+    const targetIsPrivileged = user.role === "admin" || user.role === "super_admin";
+    if (targetIsPrivileged && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        error: "Only a super admin can delete another admin",
+      });
     }
 
     if (user.role === "employee") {

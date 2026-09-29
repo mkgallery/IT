@@ -25,16 +25,26 @@ async function seedAdmin() {
   if (!email || !password) return;
 
   const existing = await User.findOne({ where: { email } });
-  if (existing) return;
+
+  if (existing) {
+    // If the seeded admin exists but isn't super_admin yet, upgrade them.
+    if (existing.role !== "super_admin") {
+      existing.role = "super_admin";
+      await existing.save();
+      console.log(`Upgraded ${email} to super_admin`);
+    }
+    return;
+  }
 
   const hashed = await bcrypt.hash(password, 10);
   await User.create({
     name: "System Admin",
     email,
     password: hashed,
-    role: "admin",
+    role: "super_admin",
+    office: "Head Office",
   });
-  console.log(`Seeded admin account: ${email}`);
+  console.log(`Seeded super_admin account: ${email}`);
 }
 
 async function start() {
