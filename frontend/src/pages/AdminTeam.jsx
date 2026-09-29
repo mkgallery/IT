@@ -28,22 +28,22 @@ const roleConfig = {
   super_admin: {
     label: "Super Admin",
     icon: Crown,
-    cls: "bg-amber-50 text-amber-700 border-amber-200",
+    cls: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20",
   },
   admin: {
     label: "Admin",
     icon: ShieldCheck,
-    cls: "bg-rose-50 text-rose-700 border-rose-200",
+    cls: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20",
   },
   it_staff: {
     label: "IT Staff",
     icon: Shield,
-    cls: "bg-brand-50 text-brand-700 border-brand-200",
+    cls: "bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-500/20",
   },
   employee: {
     label: "Employee",
     icon: UserIcon,
-    cls: "bg-slate-100 text-slate-600 border-slate-200",
+    cls: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
   },
 };
 
@@ -85,7 +85,6 @@ export default function AdminTeam() {
     );
   });
 
-  // Whether the logged-in user can act on this target user
   function canReset(target) {
     if (target.id === me?.id) return true;
     const targetIsPrivileged =
@@ -152,7 +151,7 @@ export default function AdminTeam() {
               placeholder="Search by name, email, or office…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 py-2.5 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -169,8 +168,8 @@ export default function AdminTeam() {
                 className={cn(
                   "text-xs px-3 py-2 rounded-lg border font-medium transition",
                   roleFilter === f.v
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                 )}
               >
                 {f.label}
@@ -198,7 +197,7 @@ export default function AdminTeam() {
 
         {!loading && filtered.length > 0 && (
           <Card>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((u) => {
                 const rc = roleConfig[u.role] || roleConfig.employee;
                 const RIcon = rc.icon;
@@ -209,12 +208,12 @@ export default function AdminTeam() {
                     key={u.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex items-center gap-4 p-4 hover:bg-slate-50/70 transition"
+                    className="flex items-center gap-4 p-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition"
                   >
                     <Avatar name={u.name} size="lg" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="font-semibold text-slate-900 truncate">
+                        <div className="font-semibold text-slate-900 dark:text-white truncate">
                           {u.name}
                         </div>
                         {isMe && (
@@ -232,7 +231,7 @@ export default function AdminTeam() {
                           {rc.label}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 truncate mt-0.5">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {u.email}
                         {u.office && <span> · {u.office}</span>}
                       </div>
@@ -242,7 +241,7 @@ export default function AdminTeam() {
                         <button
                           onClick={() => setResetUser(u)}
                           title="Reset password"
-                          className="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition"
+                          className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition"
                         >
                           <Key className="w-4 h-4" />
                         </button>
@@ -251,7 +250,7 @@ export default function AdminTeam() {
                         <button
                           onClick={() => setDeleteUser(u)}
                           title="Delete user"
-                          className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+                          className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -327,14 +326,14 @@ function AddMemberForm({ onCreated, isSuper }) {
     <Card>
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-            <UserPlus className="w-4 h-4 text-brand-600" />
+          <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+            <UserPlus className="w-4 h-4 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-slate-900">
+            <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
               Create new member
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Add an employee, IT staff, or admin
             </p>
           </div>
@@ -416,12 +415,14 @@ function ResetPasswordModal({ user, onClose }) {
     <Modal onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-            <Key className="w-5 h-5 text-brand-600" />
+          <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+            <Key className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900">Reset password</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
+              Reset password
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Set a new temporary password for{" "}
               <span className="font-medium">{user.name}</span>
             </p>
@@ -473,20 +474,20 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
     <Modal onClose={onClose}>
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
-            <Trash2 className="w-5 h-5 text-red-600" />
+          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 flex items-center justify-center">
+            <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
               Delete {user.name}?
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               This action cannot be undone.
             </p>
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-800">
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
           {isEmployee && (
             <>
               All tickets reported by this employee will also be permanently
@@ -541,7 +542,7 @@ function Modal({ children, onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+        className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
       >
         {children}
       </motion.div>

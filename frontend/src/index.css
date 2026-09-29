@@ -11,10 +11,11 @@
   }
   body {
     @apply bg-slate-50 text-slate-900 font-sans;
+    @apply dark:bg-slate-950 dark:text-slate-100;
   }
-  /* Nicer default focus ring */
   *:focus-visible {
     @apply outline-none ring-2 ring-brand-500/40 ring-offset-1 ring-offset-white;
+    @apply dark:ring-offset-slate-900;
   }
 }
 
@@ -28,18 +29,18 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    @apply bg-slate-300 rounded-full dark:bg-slate-700;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400;
+    @apply bg-slate-400 dark:bg-slate-600;
     background-clip: padding-box;
   }
 
   /* Skeleton shimmer */
   .skeleton {
-    @apply relative overflow-hidden bg-slate-200/70 rounded-lg;
+    @apply relative overflow-hidden bg-slate-200/70 rounded-lg dark:bg-slate-800/70;
   }
   .skeleton::after {
     content: '';
@@ -51,5 +52,13 @@
       transparent
     );
     animation: shimmer 1.5s infinite;
+  }
+  .dark .skeleton::after {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
   }
 }

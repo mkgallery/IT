@@ -67,7 +67,6 @@ export default function ITDashboard() {
     }
   }
 
-  // Client-side search filter
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
@@ -109,10 +108,13 @@ export default function ITDashboard() {
         )}
 
         {!loading && search && tickets.length > 0 && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Showing {filteredTickets.length} of {tickets.length} ticket
             {tickets.length !== 1 ? "s" : ""} matching "
-            <span className="font-medium text-slate-700">{search}</span>"
+            <span className="font-medium text-slate-700 dark:text-slate-200">
+              {search}
+            </span>
+            "
           </p>
         )}
 
@@ -143,10 +145,10 @@ export default function ITDashboard() {
                           #{String(t.id).padStart(4, "0")}
                         </span>
                       </div>
-                      <h3 className="font-semibold text-slate-900 truncate">
+                      <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                         {t.title}
                       </h3>
-                      <p className="text-sm text-slate-500 mt-1">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                         {t.description}
                       </p>
                     </div>
@@ -168,23 +170,23 @@ export default function ITDashboard() {
                           <img
                             src={t.attachmentUrl}
                             alt="attachment"
-                            className="rounded-xl max-h-64 object-cover border border-slate-200 hover:opacity-90 transition"
+                            className="rounded-xl max-h-64 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
                           />
                         </a>
                       ) : (
                         <video
                           src={t.attachmentUrl}
                           controls
-                          className="rounded-xl max-h-64 border border-slate-200"
+                          className="rounded-xl max-h-64 border border-slate-200 dark:border-slate-700"
                         />
                       )}
                     </div>
                   )}
 
                   {/* Meta */}
-                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
                     {t.category && (
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
                         {t.category}
                       </span>
                     )}
@@ -192,7 +194,7 @@ export default function ITDashboard() {
                     {t.reporter && (
                       <span className="flex items-center gap-1.5">
                         <Avatar name={t.reporter.name} size="sm" />
-                        <span className="font-medium text-slate-700">
+                        <span className="font-medium text-slate-700 dark:text-slate-200">
                           {t.reporter.name}
                         </span>
                         {t.reporter.office && (
@@ -206,8 +208,8 @@ export default function ITDashboard() {
                   </div>
 
                   {/* Status buttons */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-2">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                       Update status
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -218,7 +220,7 @@ export default function ITDashboard() {
                           className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${
                             t.status === s
                               ? "bg-brand-600 text-white border-brand-600 shadow-soft"
-                              : "border-slate-300 text-slate-600 hover:bg-slate-50 hover:border-slate-400"
+                              : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600"
                           }`}
                         >
                           {s.replace("_", " ")}
@@ -228,8 +230,8 @@ export default function ITDashboard() {
                   </div>
 
                   {/* Resolution notes */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-2">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                       <MessageSquare className="w-3 h-3" />
                       Resolution notes
                     </label>
@@ -240,7 +242,7 @@ export default function ITDashboard() {
                         onChange={(e) =>
                           setNotesDraft({ ...notesDraft, [t.id]: e.target.value })
                         }
-                        className="flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
+                        className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
                       />
                       <Button
                         onClick={() => saveNotes(t.id)}
@@ -252,7 +254,8 @@ export default function ITDashboard() {
                       </Button>
                     </div>
                   </div>
-		 <Comments ticketId={t.id} />
+
+                  <Comments ticketId={t.id} />
                 </div>
               </Card>
             </motion.div>

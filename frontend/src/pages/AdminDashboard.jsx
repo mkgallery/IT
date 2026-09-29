@@ -80,7 +80,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // Client-side search filter
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
@@ -150,8 +149,8 @@ export default function AdminDashboard() {
                 className={cn(
                   "text-xs px-3 py-1.5 rounded-lg border font-medium transition",
                   statusFilter === f.value
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                 )}
               >
                 {f.label}
@@ -195,10 +194,13 @@ export default function AdminDashboard() {
 
         {/* Search hint */}
         {search && !loading && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Showing {filteredTickets.length} of {tickets.length} ticket
             {tickets.length !== 1 ? "s" : ""} matching "
-            <span className="font-medium text-slate-700">{search}</span>"
+            <span className="font-medium text-slate-700 dark:text-slate-200">
+              {search}
+            </span>
+            "
           </p>
         )}
 
@@ -241,17 +243,16 @@ export default function AdminDashboard() {
                             #{String(t.id).padStart(4, "0")}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-slate-900 truncate">
+                        <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                           {t.title}
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                           {t.description}
                         </p>
                       </div>
                       <StatusBadge status={t.status} />
                     </div>
 
-                    {/* Attachment */}
                     {t.attachmentUrl && (
                       <div className="mt-4">
                         <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
@@ -266,28 +267,27 @@ export default function AdminDashboard() {
                             <img
                               src={t.attachmentUrl}
                               alt="attachment"
-                              className="rounded-xl max-h-64 object-cover border border-slate-200 hover:opacity-90 transition"
+                              className="rounded-xl max-h-64 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
                             />
                           </a>
                         ) : (
                           <video
                             src={t.attachmentUrl}
                             controls
-                            className="rounded-xl max-h-64 border border-slate-200"
+                            className="rounded-xl max-h-64 border border-slate-200 dark:border-slate-700"
                           />
                         )}
                       </div>
                     )}
 
-                    {/* Meta */}
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
                       <span className="capitalize">
                         Priority: {t.priority}
                       </span>
                       {t.reporter && (
                         <span className="flex items-center gap-1.5">
                           <Avatar name={t.reporter.name} size="sm" />
-                          <span className="font-medium text-slate-700">
+                          <span className="font-medium text-slate-700 dark:text-slate-200">
                             {t.reporter.name}
                           </span>
                           {t.reporter.office && (
@@ -302,22 +302,21 @@ export default function AdminDashboard() {
                         <span className="flex items-center gap-1.5">
                           <span className="text-slate-400">→</span>
                           <Avatar name={t.assignee.name} size="sm" />
-                          <span className="font-medium text-slate-700">
+                          <span className="font-medium text-slate-700 dark:text-slate-200">
                             {t.assignee.name}
                           </span>
                         </span>
                       )}
                     </div>
 
-                    {/* Assign */}
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
-                      <span className="text-xs font-medium text-slate-500">
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                         Assign to:
                       </span>
                       <select
                         defaultValue={t.assigneeId || ""}
                         onChange={(e) => assign(t.id, e.target.value)}
-                        className="text-sm rounded-xl border border-slate-300 px-3 py-2 bg-white hover:border-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
+                        className="text-sm rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
                       >
                         <option value="">Select IT staff…</option>
                         {staff.map((s) => (
@@ -327,7 +326,8 @@ export default function AdminDashboard() {
                         ))}
                       </select>
                     </div>
-		   <Comments ticketId={t.id} />
+
+                    <Comments ticketId={t.id} />
                   </div>
                 </Card>
               </motion.div>
@@ -340,11 +340,11 @@ export default function AdminDashboard() {
 
 /* ---------- Stat card ---------- */
 const toneClasses = {
-  amber: "bg-amber-50 text-amber-600 border-amber-100",
-  sky: "bg-sky-50 text-sky-600 border-sky-100",
-  brand: "bg-brand-50 text-brand-600 border-brand-100",
-  emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-  slate: "bg-slate-100 text-slate-600 border-slate-200",
+  amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20",
+  sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-500/20",
+  brand: "bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-100 dark:border-brand-500/20",
+  emerald: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20",
+  slate: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
   dark: "bg-slate-900 text-white border-slate-900",
 };
 
@@ -356,7 +356,9 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "rounded-2xl border p-4 shadow-soft",
-        isDark ? toneClasses.dark : "bg-white border-slate-200"
+        isDark
+          ? toneClasses.dark
+          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
       )}
     >
       <div
@@ -367,13 +369,18 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
       >
         <Icon className={cn("w-4 h-4", isDark && "text-white")} />
       </div>
-      <div className={cn("text-2xl font-bold", isDark ? "text-white" : "text-slate-900")}>
+      <div
+        className={cn(
+          "text-2xl font-bold",
+          isDark ? "text-white" : "text-slate-900 dark:text-white"
+        )}
+      >
         {value ?? "—"}
       </div>
       <div
         className={cn(
           "text-[11px] font-medium uppercase tracking-wide mt-0.5",
-          isDark ? "text-slate-400" : "text-slate-500"
+          isDark ? "text-slate-400" : "text-slate-500 dark:text-slate-400"
         )}
       >
         {label}
@@ -411,14 +418,14 @@ function AddStaffForm({ onCreated }) {
     <Card>
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-            <UserPlus className="w-4 h-4 text-brand-600" />
+          <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+            <UserPlus className="w-4 h-4 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-slate-900">
+            <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
               Create new account
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               IT staff or another admin
             </p>
           </div>

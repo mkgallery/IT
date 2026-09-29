@@ -105,7 +105,6 @@ export default function EmployeeDashboard() {
     }
   }
 
-  // Client-side search filter (only applies to the tickets list)
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
@@ -134,15 +133,15 @@ export default function EmployeeDashboard() {
         <div className="lg:col-span-2">
           <div className="lg:sticky lg:top-24">
             <Card className="overflow-hidden">
-              <div className="p-5 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-                  <Plus className="w-4 h-4 text-brand-600" />
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-slate-900 text-sm">
+                  <h2 className="font-semibold text-slate-900 dark:text-white text-sm">
                     Report a problem
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     We'll get back to you quickly
                   </p>
                 </div>
@@ -192,7 +191,7 @@ export default function EmployeeDashboard() {
 
                 {/* File upload */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     Attach image or video (optional)
                   </label>
 
@@ -202,10 +201,10 @@ export default function EmployeeDashboard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-slate-300 hover:border-brand-400 hover:bg-brand-50/30 cursor-pointer transition"
+                        className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50/30 dark:hover:bg-brand-500/10 cursor-pointer transition"
                       >
                         <Paperclip className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-600">
+                        <span className="text-xs text-slate-600 dark:text-slate-400">
                           Click to choose a file
                         </span>
                         <input
@@ -220,7 +219,7 @@ export default function EmployeeDashboard() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
-                        className="relative rounded-xl overflow-hidden border border-slate-200"
+                        className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
                       >
                         {file?.type.startsWith("image/") ? (
                           <img
@@ -283,10 +282,13 @@ export default function EmployeeDashboard() {
           )}
 
           {!loading && search && tickets.length > 0 && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Showing {filteredTickets.length} of {tickets.length} ticket
               {tickets.length !== 1 ? "s" : ""} matching "
-              <span className="font-medium text-slate-700">{search}</span>"
+              <span className="font-medium text-slate-700 dark:text-slate-200">
+                {search}
+              </span>
+              "
             </p>
           )}
 
@@ -316,10 +318,10 @@ export default function EmployeeDashboard() {
                             #{String(t.id).padStart(4, "0")}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-slate-900 truncate">
+                        <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                           {t.title}
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                           {t.description}
                         </p>
                       </div>
@@ -337,22 +339,22 @@ export default function EmployeeDashboard() {
                             <img
                               src={t.attachmentUrl}
                               alt="attachment"
-                              className="rounded-xl max-h-56 object-cover border border-slate-200 hover:opacity-90 transition"
+                              className="rounded-xl max-h-56 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
                             />
                           </a>
                         ) : (
                           <video
                             src={t.attachmentUrl}
                             controls
-                            className="rounded-xl max-h-56 border border-slate-200"
+                            className="rounded-xl max-h-56 border border-slate-200 dark:border-slate-700"
                           />
                         )}
                       </div>
                     )}
 
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
                       {t.category && (
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
                           {t.category}
                         </span>
                       )}
@@ -366,17 +368,17 @@ export default function EmployeeDashboard() {
                     </div>
 
                     {t.resolutionNotes && (
-                      <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                        <div className="text-[11px] font-semibold text-emerald-700 mb-0.5">
+                      <div className="mt-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
+                        <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">
                           RESOLUTION
                         </div>
-                        <p className="text-sm text-emerald-800">
+                        <p className="text-sm text-emerald-800 dark:text-emerald-300">
                           {t.resolutionNotes}
                         </p>
                       </div>
                     )}
-			
-		   <Comments ticketId={t.id} />
+
+                    <Comments ticketId={t.id} />
                   </div>
                 </Card>
               </motion.div>

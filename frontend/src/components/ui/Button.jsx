@@ -5,11 +5,11 @@ const variants = {
   primary:
     "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-soft",
   secondary:
-    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 shadow-soft",
+    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 shadow-soft dark:bg-slate-700 dark:hover:bg-slate-600",
   outline:
-    "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400",
+    "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:border-slate-600",
   ghost:
-    "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white",
   danger:
     "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-soft",
 };

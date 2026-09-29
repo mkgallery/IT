@@ -91,7 +91,7 @@ export default function Login() {
       </div>
 
       {/* Right: form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-slate-50">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-slate-50 dark:bg-slate-950">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -102,11 +102,15 @@ export default function Login() {
             <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
               <LifeBuoy className="w-5 h-5 text-white" />
             </div>
-            <div className="font-semibold text-slate-900">IT Support Desk</div>
+            <div className="font-semibold text-slate-900 dark:text-white">
+              IT Support Desk
+            </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-          <p className="text-sm text-slate-500 mt-1 mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Welcome back
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-8">
             Sign in to your account to continue
           </p>
 
@@ -148,11 +152,11 @@ export default function Login() {
             </Button>
           </form>
 
-          <p className="text-sm text-slate-500 text-center mt-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-6">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="font-medium text-brand-600 hover:text-brand-700"
+              className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
             >
               Create one
             </Link>

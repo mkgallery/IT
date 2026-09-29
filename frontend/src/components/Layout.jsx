@@ -10,9 +10,12 @@ import {
   ChevronRight,
   BarChart3,
   Search,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Avatar from "./ui/Avatar";
 import { cn } from "../lib/utils";
 
@@ -40,6 +43,7 @@ export default function Layout({
   searchPlaceholder = "Search tickets…",
 }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -162,9 +166,9 @@ export default function Layout({
   );
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-slate-900">
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-slate-900 dark:bg-slate-900">
         {SidebarContent}
       </aside>
 
@@ -201,21 +205,23 @@ export default function Layout({
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
           <div className="px-5 lg:px-8 py-4 flex items-center gap-4">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100"
+              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-lg text-slate-900 truncate">
+              <h1 className="font-semibold text-lg text-slate-900 dark:text-white truncate">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-xs text-slate-500 truncate">{subtitle}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {subtitle}
+                </p>
               )}
             </div>
 
@@ -227,10 +233,22 @@ export default function Layout({
                   value={query}
                   onChange={handleSearchChange}
                   placeholder={searchPlaceholder}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 pl-9 pr-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
                 />
               </div>
             )}
+
+            <button
+              onClick={toggleTheme}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition"
+            >
+              {theme === "dark" ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
 
             {actions && <div className="flex items-center gap-2">{actions}</div>}
           </div>

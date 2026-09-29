@@ -29,6 +29,7 @@ import api from "../api";
 import Layout from "../components/Layout";
 import { Card } from "../components/ui/Card";
 import Skeleton from "../components/ui/Skeleton";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { cn } from "../lib/utils";
 
 const pieColors = {
@@ -40,9 +41,20 @@ const pieColors = {
 };
 
 export default function AdminAnalytics() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [stats, setStats] = useState(null);
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Theme-aware chart colors
+  const gridColor = isDark ? "#1e293b" : "#e2e8f0";
+  const axisColor = isDark ? "#64748b" : "#94a3b8";
+  const tooltipBg = isDark ? "#0f172a" : "#ffffff";
+  const tooltipBorder = isDark ? "#1e293b" : "#e2e8f0";
+  const tooltipText = isDark ? "#e2e8f0" : "#0f172a";
+  const legendColor = isDark ? "#94a3b8" : "#64748b";
 
   async function load() {
     try {
@@ -72,6 +84,15 @@ export default function AdminAnalytics() {
         { name: "Closed", value: stats.closed },
       ].filter((d) => d.value > 0)
     : [];
+
+  const tooltipStyle = {
+    borderRadius: "0.85rem",
+    border: `1px solid ${tooltipBorder}`,
+    background: tooltipBg,
+    color: tooltipText,
+    fontSize: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+  };
 
   return (
     <Layout
@@ -104,15 +125,15 @@ export default function AdminAnalytics() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
                       Ticket volume — last 7 days
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Number of tickets created per day
                     </p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-brand-600" />
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                   </div>
                 </div>
                 {trend.length > 0 ? (
@@ -129,31 +150,24 @@ export default function AdminAnalytics() {
                       </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#e2e8f0"
+                        stroke={gridColor}
                         vertical={false}
                       />
                       <XAxis
                         dataKey="label"
-                        stroke="#94a3b8"
+                        stroke={axisColor}
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
                       />
                       <YAxis
-                        stroke="#94a3b8"
+                        stroke={axisColor}
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
                         allowDecimals={false}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: "0.85rem",
-                          border: "1px solid #e2e8f0",
-                          fontSize: "12px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-                        }}
-                      />
+                      <Tooltip contentStyle={tooltipStyle} />
                       <Line
                         type="monotone"
                         dataKey="count"
@@ -179,15 +193,15 @@ export default function AdminAnalytics() {
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h3 className="font-semibold text-slate-900">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
                         Status breakdown
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Current distribution
                       </p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-                      <BarChart3 className="w-5 h-5 text-brand-600" />
+                    <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                     </div>
                   </div>
                   {pieData.length > 0 ? (
@@ -206,17 +220,11 @@ export default function AdminAnalytics() {
                             <Cell key={entry.name} fill={pieColors[entry.name]} />
                           ))}
                         </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "0.85rem",
-                            border: "1px solid #e2e8f0",
-                            fontSize: "12px",
-                          }}
-                        />
+                        <Tooltip contentStyle={tooltipStyle} />
                         <Legend
                           verticalAlign="bottom"
                           iconType="circle"
-                          wrapperStyle={{ fontSize: "12px" }}
+                          wrapperStyle={{ fontSize: "12px", color: legendColor }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -233,15 +241,15 @@ export default function AdminAnalytics() {
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h3 className="font-semibold text-slate-900">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
                         Status counts
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         At a glance
                       </p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                      <BarChart3 className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                   </div>
                   {pieData.length > 0 ? (
@@ -252,30 +260,24 @@ export default function AdminAnalytics() {
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="#e2e8f0"
+                          stroke={gridColor}
                           vertical={false}
                         />
                         <XAxis
                           dataKey="name"
-                          stroke="#94a3b8"
+                          stroke={axisColor}
                           fontSize={11}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          stroke="#94a3b8"
+                          stroke={axisColor}
                           fontSize={12}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
                         />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "0.85rem",
-                            border: "1px solid #e2e8f0",
-                            fontSize: "12px",
-                          }}
-                        />
+                        <Tooltip contentStyle={tooltipStyle} />
                         <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                           {pieData.map((entry) => (
                             <Cell key={entry.name} fill={pieColors[entry.name]} />
@@ -299,11 +301,11 @@ export default function AdminAnalytics() {
 }
 
 const toneClasses = {
-  amber: "bg-amber-50 text-amber-600 border-amber-100",
-  sky: "bg-sky-50 text-sky-600 border-sky-100",
-  brand: "bg-brand-50 text-brand-600 border-brand-100",
-  emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-  slate: "bg-slate-100 text-slate-600 border-slate-200",
+  amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20",
+  sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-500/20",
+  brand: "bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-100 dark:border-brand-500/20",
+  emerald: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20",
+  slate: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
   dark: "bg-slate-900 text-white border-slate-900",
 };
 
@@ -315,7 +317,9 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "rounded-2xl border p-4 shadow-soft",
-        isDark ? toneClasses.dark : "bg-white border-slate-200"
+        isDark
+          ? toneClasses.dark
+          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
       )}
     >
       <div
@@ -329,7 +333,7 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
       <div
         className={cn(
           "text-2xl font-bold",
-          isDark ? "text-white" : "text-slate-900"
+          isDark ? "text-white" : "text-slate-900 dark:text-white"
         )}
       >
         {value ?? "—"}
@@ -337,7 +341,7 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
       <div
         className={cn(
           "text-[11px] font-medium uppercase tracking-wide mt-0.5",
-          isDark ? "text-slate-400" : "text-slate-500"
+          isDark ? "text-slate-400" : "text-slate-500 dark:text-slate-400"
         )}
       >
         {label}
