@@ -7,6 +7,7 @@ const { sequelize, User } = require("./models");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const ticketRoutes = require("./routes/tickets");
+const commentRoutes = require("./routes/comments");
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api", commentRoutes);
 
 const PORT = process.env.PORT || 4000;
 
@@ -27,7 +29,6 @@ async function seedAdmin() {
   const existing = await User.findOne({ where: { email } });
 
   if (existing) {
-    // If the seeded admin exists but isn't super_admin yet, upgrade them.
     if (existing.role !== "super_admin") {
       existing.role = "super_admin";
       await existing.save();
@@ -49,7 +50,6 @@ async function seedAdmin() {
 
 async function start() {
   let connected = false;
-  // Retry DB connection since MySQL container may still be starting up
   for (let i = 0; i < 15 && !connected; i++) {
     try {
       await sequelize.authenticate();
@@ -61,7 +61,7 @@ async function start() {
   }
   if (!connected) throw new Error("Could not connect to database");
 
-  await sequelize.sync(); // creates tables if they don't exist
+  await sequelize.sync();
   await seedAdmin();
 
   app.listen(PORT, () => console.log(`IT Support backend running on port ${PORT}`));

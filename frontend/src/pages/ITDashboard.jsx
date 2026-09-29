@@ -16,6 +16,7 @@ import { Card } from "../components/ui/Card";
 import Avatar from "../components/ui/Avatar";
 import EmptyState from "../components/ui/EmptyState";
 import Skeleton from "../components/ui/Skeleton";
+import Comments from "../components/Comments";
 
 const statusOptions = ["assigned", "in_progress", "resolved", "closed"];
 
@@ -251,6 +252,7 @@ export default function ITDashboard() {
                       </Button>
                     </div>
                   </div>
+		 <Comments ticketId={t.id} />
                 </div>
               </Card>
             </motion.div>

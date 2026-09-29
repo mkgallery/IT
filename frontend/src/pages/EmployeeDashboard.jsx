@@ -18,6 +18,7 @@ import { Card } from "../components/ui/Card";
 import Avatar from "../components/ui/Avatar";
 import EmptyState from "../components/ui/EmptyState";
 import Skeleton from "../components/ui/Skeleton";
+import Comments from "../components/Comments";
 
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
@@ -374,6 +375,8 @@ export default function EmployeeDashboard() {
                         </p>
                       </div>
                     )}
+			
+		   <Comments ticketId={t.id} />
                   </div>
                 </Card>
               </motion.div>

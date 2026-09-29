@@ -22,6 +22,7 @@ import { Input, Select } from "../components/ui/Input";
 import Avatar from "../components/ui/Avatar";
 import EmptyState from "../components/ui/EmptyState";
 import Skeleton from "../components/ui/Skeleton";
+import Comments from "../components/Comments";
 import { cn } from "../lib/utils";
 
 const filters = [
@@ -326,6 +327,7 @@ export default function AdminDashboard() {
                         ))}
                       </select>
                     </div>
+		   <Comments ticketId={t.id} />
                   </div>
                 </Card>
               </motion.div>
