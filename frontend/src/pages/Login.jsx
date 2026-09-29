@@ -22,9 +22,13 @@ export default function Login() {
       toast.success(`Welcome back, ${loggedInUser.name.split(" ")[0]}!`);
 
       const role = loggedInUser.role;
-      navigate(
-        role === "admin" ? "/admin" : role === "it_staff" ? "/it" : "/employee"
-      );
+      const target =
+        role === "admin" || role === "super_admin"
+          ? "/admin"
+          : role === "it_staff"
+          ? "/it"
+          : "/employee";
+      navigate(target);
     } catch (err) {
       toast.error(err.response?.data?.error || "Login failed");
     } finally {
