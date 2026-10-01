@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LifeBuoy,
   Mail,
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import api from "../api";
 import Button from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -24,16 +26,17 @@ export default function Register() {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     try {
       await api.post("/auth/register", form);
-      toast.success("Account created! You can now sign in.");
+      toast.success(t("register.success"));
       navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.error || "Registration failed");
+      toast.error(err.response?.data?.error || t("register.failed"));
     } finally {
       setLoading(false);
     }
@@ -62,9 +65,7 @@ export default function Register() {
               transition={{ delay: 0.1 }}
               className="text-4xl font-bold text-white leading-tight"
             >
-              Join your
-              <br />
-              support portal.
+              {t("register.title")}
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
@@ -72,8 +73,7 @@ export default function Register() {
               transition={{ delay: 0.2 }}
               className="mt-4 text-white/70 text-sm leading-relaxed"
             >
-              Create an account to report IT issues, attach screenshots, and
-              track the status of your requests in real time.
+              {t("register.subtitle")}
             </motion.p>
 
             <motion.div
@@ -83,7 +83,7 @@ export default function Register() {
               className="mt-8 flex items-center gap-3 text-white/80 text-xs"
             >
               <ShieldCheck className="w-4 h-4" />
-              Secure. Encrypted. Role-based access.
+              {t("landing.trust1")} · {t("landing.trust2")} · {t("landing.trust3")}
             </motion.div>
           </div>
 
@@ -94,7 +94,12 @@ export default function Register() {
       </div>
 
       {/* Right: form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-slate-50 dark:bg-slate-950">
+      <div className="flex-1 relative flex items-center justify-center px-6 py-12 bg-slate-50 dark:bg-slate-950">
+        {/* Language switcher (top-right corner) */}
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+          <LanguageSwitcher />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,17 +115,17 @@ export default function Register() {
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Create account
+            {t("register.title")}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-8">
-            Start reporting and tracking IT issues
+            {t("register.subtitle")}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-[42px] pointer-events-none" />
               <Input
-                label="Full name"
+                label={t("register.fullName")}
                 required
                 placeholder="Miliki Amosi"
                 value={form.name}
@@ -132,7 +137,7 @@ export default function Register() {
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-[42px] pointer-events-none" />
               <Input
-                label="Email"
+                label={t("register.email")}
                 type="email"
                 required
                 placeholder="you@company.com"
@@ -145,10 +150,10 @@ export default function Register() {
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-[42px] pointer-events-none" />
               <Input
-                label="Password"
+                label={t("register.password")}
                 type="password"
                 required
-                placeholder="Min. 8 chars with letter, number & symbol"
+                placeholder={t("register.passwordHint")}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="pl-10"
@@ -158,9 +163,9 @@ export default function Register() {
             <div className="relative">
               <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-[42px] pointer-events-none" />
               <Input
-                label="Office / Location / Department"
+                label={t("register.office")}
                 required
-                placeholder="e.g. Headquarters, IT Dept"
+                placeholder={t("register.officeHint")}
                 value={form.office}
                 onChange={(e) => setForm({ ...form, office: e.target.value })}
                 className="pl-10"
@@ -173,18 +178,18 @@ export default function Register() {
               className="w-full"
               size="lg"
             >
-              Create account
+              {t("register.createAccount")}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
 
           <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-6">
-            Already have an account?{" "}
+            {t("register.haveAccount")}{" "}
             <Link
               to="/login"
               className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
             >
-              Sign in
+              {t("register.signIn")}
             </Link>
           </p>
         </motion.div>

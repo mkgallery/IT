@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LifeBuoy,
   ArrowRight,
@@ -14,48 +15,27 @@ import {
   Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-const features = [
-  {
-    icon: Ticket,
-    title: "Structured tickets",
-    desc: "Every issue becomes a ticket with a status — no more lost emails or chat messages.",
-  },
-  {
-    icon: Paperclip,
-    title: "Attach screenshots",
-    desc: "Employees can attach images or videos so IT sees the problem, not just a description.",
-  },
-  {
-    icon: Users,
-    title: "Role-based access",
-    desc: "Separate dashboards for employees, IT staff, and admins — enforced server-side.",
-  },
-  {
-    icon: Zap,
-    title: "Smart assignment",
-    desc: "Assign tickets with workload warnings to prevent overload.",
-  },
-  {
-    icon: BarChart3,
-    title: "Live analytics",
-    desc: "Real-time stats and 7-day trends so admins see the whole picture.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Secure by design",
-    desc: "JWT sessions, bcrypt password hashing, and RBAC on every protected route.",
-  },
-];
-
-const steps = [
-  { n: "01", title: "Report", desc: "Employee submits a ticket with optional screenshot." },
-  { n: "02", title: "Assign", desc: "Admin assigns it to the right IT staff member." },
-  { n: "03", title: "Resolve", desc: "IT updates status and adds resolution notes." },
-  { n: "04", title: "Track", desc: "Everyone sees progress in real time." },
-];
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function Landing() {
+  const { t } = useTranslation();
+
+  const features = [
+    { icon: Ticket, key: "tickets" },
+    { icon: Paperclip, key: "screenshots" },
+    { icon: Users, key: "roles" },
+    { icon: Zap, key: "assignment" },
+    { icon: BarChart3, key: "analytics" },
+    { icon: ShieldCheck, key: "secure" },
+  ];
+
+  const steps = [
+    { n: "01", key: "report" },
+    { n: "02", key: "assign" },
+    { n: "03", key: "resolve" },
+    { n: "04", key: "track" },
+  ];
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Nav */}
@@ -70,17 +50,18 @@ export default function Landing() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <Link
               to="/login"
               className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3 py-2"
             >
-              Sign in
+              {t("landing.signIn")}
             </Link>
             <Link
               to="/register"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition shadow-soft"
             >
-              Get started
+              {t("landing.getStarted")}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -98,7 +79,7 @@ export default function Landing() {
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 text-xs font-medium text-brand-700 dark:text-brand-300 mb-6"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Multi-office IT ticketing — built for real teams
+            {t("landing.badge")}
           </motion.div>
 
           <motion.h1
@@ -107,10 +88,10 @@ export default function Landing() {
             transition={{ delay: 0.05 }}
             className="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.05] max-w-3xl mx-auto"
           >
-            Support that
+            {t("landing.title1")}
             <br />
             <span className="bg-gradient-to-r from-brand-600 to-indigo-500 dark:from-brand-400 dark:to-indigo-400 bg-clip-text text-transparent">
-              just works.
+              {t("landing.title2")}
             </span>
           </motion.h1>
 
@@ -120,8 +101,7 @@ export default function Landing() {
             transition={{ delay: 0.15 }}
             className="mt-6 text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto"
           >
-            A modern ticketing system that turns informal IT complaints into a
-            structured, auditable workflow — across every office.
+            {t("landing.subtitle")}
           </motion.p>
 
           <motion.div
@@ -134,14 +114,14 @@ export default function Landing() {
               to="/register"
               className="inline-flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-card"
             >
-              Start free
+              {t("landing.startFree")}
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/login"
               className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition"
             >
-              Sign in
+              {t("landing.signIn")}
             </Link>
           </motion.div>
 
@@ -154,15 +134,15 @@ export default function Landing() {
           >
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              Role-based access
+              {t("landing.trust1")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              File attachments
+              {t("landing.trust2")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              Real-time analytics
+              {t("landing.trust3")}
             </span>
           </motion.div>
 
@@ -174,7 +154,6 @@ export default function Landing() {
             className="mt-16 mx-auto max-w-4xl"
           >
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-900/5 overflow-hidden bg-white dark:bg-slate-900">
-              {/* Fake window bar */}
               <div className="flex items-center gap-1.5 px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
@@ -183,9 +162,7 @@ export default function Landing() {
                   itsupportsystem.app/admin
                 </div>
               </div>
-              {/* Fake dashboard */}
               <div className="grid grid-cols-12 min-h-[340px]">
-                {/* Sidebar */}
                 <div className="col-span-3 bg-slate-900 p-4 text-left">
                   <div className="flex items-center gap-2 mb-6">
                     <div className="w-6 h-6 rounded-lg bg-brand-500 flex items-center justify-center">
@@ -193,20 +170,17 @@ export default function Landing() {
                     </div>
                     <div className="text-white text-xs font-medium">IT Support</div>
                   </div>
-                  {["Dashboard", "All Tickets", "Team"].map((t, i) => (
+                  {["Dashboard", "All Tickets", "Team"].map((label, i) => (
                     <div
-                      key={t}
+                      key={label}
                       className={`text-[11px] px-2.5 py-1.5 rounded-md mb-1 ${
-                        i === 0
-                          ? "bg-slate-800 text-white"
-                          : "text-slate-400"
+                        i === 0 ? "bg-slate-800 text-white" : "text-slate-400"
                       }`}
                     >
-                      {t}
+                      {label}
                     </div>
                   ))}
                 </div>
-                {/* Content */}
                 <div className="col-span-9 p-5 bg-slate-50 dark:bg-slate-950 text-left">
                   <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
                     Overview
@@ -256,11 +230,10 @@ export default function Landing() {
       <section className="max-w-6xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Everything you need to run IT support
+            {t("landing.featuresTitle")}
           </h2>
           <p className="text-slate-600 dark:text-slate-400 mt-3 max-w-lg mx-auto">
-            Built from the ground up for multi-office teams — with roles,
-            security, and analytics baked in.
+            {t("landing.featuresSubtitle")}
           </p>
         </div>
 
@@ -269,7 +242,7 @@ export default function Landing() {
             const Icon = f.icon;
             return (
               <motion.div
-                key={f.title}
+                key={f.key}
                 initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -280,10 +253,10 @@ export default function Landing() {
                   <Icon className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {f.title}
+                  {t(`landing.features.${f.key}.title`)}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  {f.desc}
+                  {t(`landing.features.${f.key}.desc`)}
                 </p>
               </motion.div>
             );
@@ -296,10 +269,10 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-              How it works
+              {t("landing.howTitle")}
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mt-3">
-              Four steps from problem to resolution.
+              {t("landing.howSubtitle")}
             </p>
           </div>
 
@@ -317,10 +290,10 @@ export default function Landing() {
                   {s.n}
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {s.title}
+                  {t(`landing.steps.${s.key}.title`)}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5">
-                  {s.desc}
+                  {t(`landing.steps.${s.key}.desc`)}
                 </p>
                 {i < steps.length - 1 && (
                   <ArrowRight className="hidden lg:block w-4 h-4 text-slate-300 dark:text-slate-700 absolute top-1/2 -right-4 -translate-y-1/2" />
@@ -337,24 +310,24 @@ export default function Landing() {
           <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-brand-400/20 blur-3xl" />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-              Ready to modernize your IT support?
+              {t("landing.ctaTitle")}
             </h2>
             <p className="text-white/70 mt-4 max-w-md mx-auto">
-              Set up takes seconds. No credit card. Works across every office.
+              {t("landing.ctaSubtitle")}
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/register"
                 className="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-xl font-medium hover:bg-slate-100 transition shadow-lg"
               >
-                Get started free
+                {t("landing.ctaButton")}
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/login"
                 className="inline-flex items-center gap-2 bg-white/10 backdrop-blur text-white border border-white/20 px-6 py-3 rounded-xl font-medium hover:bg-white/20 transition"
               >
-                Sign in
+                {t("landing.signIn")}
               </Link>
             </div>
           </div>
@@ -374,7 +347,7 @@ export default function Landing() {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <Bell className="w-3.5 h-3.5" />
-            Built for teams who move fast
+            {t("landing.footer")}
           </div>
         </div>
       </footer>
