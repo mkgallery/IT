@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { useAuth } from "../context/AuthContext.jsx";
 import Layout from "../components/Layout";
@@ -26,28 +27,29 @@ import { cn } from "../lib/utils";
 
 const roleConfig = {
   super_admin: {
-    label: "Super Admin",
+    key: "super_admin",
     icon: Crown,
     cls: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20",
   },
   admin: {
-    label: "Admin",
+    key: "admin",
     icon: ShieldCheck,
     cls: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20",
   },
   it_staff: {
-    label: "IT Staff",
+    key: "it_staff",
     icon: Shield,
     cls: "bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-500/20",
   },
   employee: {
-    label: "Employee",
+    key: "employee",
     icon: UserIcon,
     cls: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
   },
 };
 
 export default function AdminTeam() {
+  const { t } = useTranslation();
   const { user: me } = useAuth();
   const isSuper = me?.role === "super_admin";
 
@@ -59,12 +61,20 @@ export default function AdminTeam() {
   const [resetUser, setResetUser] = useState(null);
   const [deleteUser, setDeleteUser] = useState(null);
 
+  const roleFilters = [
+    { v: "", label: t("team.filterAll") },
+    { v: "super_admin", label: t("team.filterSuperAdmins") },
+    { v: "admin", label: t("team.filterAdmins") },
+    { v: "it_staff", label: t("team.filterITStaff") },
+    { v: "employee", label: t("team.filterEmployees") },
+  ];
+
   async function load() {
     try {
       const res = await api.get("/users");
       setUsers(res.data);
     } catch (err) {
-      toast.error("Could not load users");
+      toast.error(t("team.noUsers"));
     } finally {
       setLoading(false);
     }
@@ -72,6 +82,7 @@ export default function AdminTeam() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = users.filter((u) => {
@@ -103,8 +114,8 @@ export default function AdminTeam() {
 
   return (
     <Layout
-      title="Team"
-      subtitle="Manage users, reset passwords, and remove accounts"
+      title={t("team.title")}
+      subtitle={t("team.subtitle")}
       actions={
         <Button
           onClick={() => setShowAdd((v) => !v)}
@@ -112,11 +123,11 @@ export default function AdminTeam() {
         >
           {showAdd ? (
             <>
-              <X className="w-4 h-4" /> Close
+              <X className="w-4 h-4" /> {t("common.close")}
             </>
           ) : (
             <>
-              <UserPlus className="w-4 h-4" /> Add member
+              <UserPlus className="w-4 h-4" /> {t("team.addMember")}
             </>
           )}
         </Button>
@@ -148,20 +159,14 @@ export default function AdminTeam() {
           <div className="relative flex-1 min-w-[220px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
-              placeholder="Search by name, email, or office…"
+              placeholder={t("team.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {[
-              { v: "", label: "All" },
-              { v: "super_admin", label: "Super Admins" },
-              { v: "admin", label: "Admins" },
-              { v: "it_staff", label: "IT Staff" },
-              { v: "employee", label: "Employees" },
-            ].map((f) => (
+            {roleFilters.map((f) => (
               <button
                 key={f.v}
                 onClick={() => setRoleFilter(f.v)}
@@ -190,8 +195,8 @@ export default function AdminTeam() {
         {!loading && filtered.length === 0 && (
           <EmptyState
             icon={Users}
-            title="No users found"
-            description="Try changing your search or filter."
+            title={t("team.noUsers")}
+            description={t("team.noUsersDesc")}
           />
         )}
 
@@ -218,7 +223,7 @@ export default function AdminTeam() {
                         </div>
                         {isMe && (
                           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
-                            You
+                            {t("team.you")}
                           </span>
                         )}
                         <span
@@ -228,7 +233,7 @@ export default function AdminTeam() {
                           )}
                         >
                           <RIcon className="w-3 h-3" />
-                          {rc.label}
+                          {t(`roles.${rc.key}`)}
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
@@ -240,7 +245,7 @@ export default function AdminTeam() {
                       {canReset(u) && (
                         <button
                           onClick={() => setResetUser(u)}
-                          title="Reset password"
+                          title={t("team.resetPassword")}
                           className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition"
                         >
                           <Key className="w-4 h-4" />
@@ -249,7 +254,7 @@ export default function AdminTeam() {
                       {canDelete(u) && (
                         <button
                           onClick={() => setDeleteUser(u)}
-                          title="Delete user"
+                          title={t("team.deleteUser")}
                           className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -283,11 +288,13 @@ export default function AdminTeam() {
             onConfirm={async () => {
               try {
                 await api.delete(`/users/${deleteUser.id}`);
-                toast.success(`${deleteUser.name} deleted`);
+                toast.success(
+                  t("team.deleteSuccess", { name: deleteUser.name })
+                );
                 setDeleteUser(null);
                 load();
               } catch (err) {
-                toast.error(err.response?.data?.error || "Delete failed");
+                toast.error(err.response?.data?.error || t("team.deleteFailed"));
               }
             }}
           />
@@ -299,6 +306,7 @@ export default function AdminTeam() {
 
 /* ---------- Add member form ---------- */
 function AddMemberForm({ onCreated, isSuper }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -313,10 +321,10 @@ function AddMemberForm({ onCreated, isSuper }) {
     setLoading(true);
     try {
       await api.post("/users", form);
-      toast.success("Account created");
+      toast.success(t("addMember.success"));
       onCreated();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not create account");
+      toast.error(err.response?.data?.error || t("addMember.failed"));
     } finally {
       setLoading(false);
     }
@@ -331,10 +339,10 @@ function AddMemberForm({ onCreated, isSuper }) {
           </div>
           <div>
             <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-              Create new member
+              {t("addMember.title")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Add an employee, IT staff, or admin
+              {t("addMember.subtitle")}
             </p>
           </div>
         </div>
@@ -342,7 +350,7 @@ function AddMemberForm({ onCreated, isSuper }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <Input
             required
-            label="Full name"
+            label={t("addMember.fullName")}
             placeholder="Jane Doe"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -350,7 +358,7 @@ function AddMemberForm({ onCreated, isSuper }) {
           <Input
             required
             type="email"
-            label="Email"
+            label={t("addMember.email")}
             placeholder="jane@company.com"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -358,26 +366,28 @@ function AddMemberForm({ onCreated, isSuper }) {
           <Input
             required
             type="password"
-            label="Temporary password"
-            placeholder="Min. 8 chars"
+            label={t("addMember.password")}
+            placeholder={t("addMember.passwordHint")}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           <Select
-            label="Role"
+            label={t("addMember.role")}
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
           >
-            <option value="employee">Employee</option>
-            <option value="it_staff">IT Staff</option>
-            <option value="admin">Admin / Boss</option>
-            {isSuper && <option value="super_admin">Super Admin</option>}
+            <option value="employee">{t("roles.employee")}</option>
+            <option value="it_staff">{t("roles.it_staff")}</option>
+            <option value="admin">{t("roles.admin")}</option>
+            {isSuper && (
+              <option value="super_admin">{t("roles.super_admin")}</option>
+            )}
           </Select>
           <div className="sm:col-span-2">
             <Input
               required
-              label="Office / Location / Department"
-              placeholder="e.g. Headquarters, IT Dept"
+              label={t("addMember.office")}
+              placeholder={t("addMember.officeHint")}
               value={form.office}
               onChange={(e) => setForm({ ...form, office: e.target.value })}
             />
@@ -385,7 +395,7 @@ function AddMemberForm({ onCreated, isSuper }) {
         </div>
 
         <Button type="submit" loading={loading} className="w-full" size="lg">
-          {loading ? "Creating…" : "Create account"}
+          {loading ? t("addMember.creating") : t("addMember.createAccount")}
         </Button>
       </form>
     </Card>
@@ -394,6 +404,7 @@ function AddMemberForm({ onCreated, isSuper }) {
 
 /* ---------- Reset password modal ---------- */
 function ResetPasswordModal({ user, onClose }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -402,10 +413,10 @@ function ResetPasswordModal({ user, onClose }) {
     setLoading(true);
     try {
       await api.put(`/users/${user.id}/password`, { password });
-      toast.success(`Password reset for ${user.name}`);
+      toast.success(t("team.resetSuccess", { name: user.name }));
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not reset password");
+      toast.error(err.response?.data?.error || t("team.resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -420,10 +431,10 @@ function ResetPasswordModal({ user, onClose }) {
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Reset password
+              {t("team.resetTitle")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Set a new temporary password for{" "}
+              {t("team.resetSubtitle")}{" "}
               <span className="font-medium">{user.name}</span>
             </p>
           </div>
@@ -432,8 +443,8 @@ function ResetPasswordModal({ user, onClose }) {
         <Input
           required
           type="password"
-          label="New password"
-          placeholder="Min. 8 chars with letter, number & symbol"
+          label={t("team.newPassword")}
+          placeholder={t("register.passwordHint")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -445,10 +456,10 @@ function ResetPasswordModal({ user, onClose }) {
             onClick={onClose}
             className="flex-1"
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" loading={loading} className="flex-1">
-            {loading ? "Saving…" : "Reset password"}
+            {loading ? t("common.saving") : t("team.resetPassword")}
           </Button>
         </div>
       </form>
@@ -458,6 +469,7 @@ function ResetPasswordModal({ user, onClose }) {
 
 /* ---------- Delete confirmation modal ---------- */
 function ConfirmDeleteModal({ user, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   async function handle() {
@@ -479,38 +491,23 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Delete {user.name}?
+              {t("team.deleteTitle", { name: user.name })}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              This action cannot be undone.
+              {t("team.deleteWarn")}
             </p>
           </div>
         </div>
 
         <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
-          {isEmployee && (
-            <>
-              All tickets reported by this employee will also be permanently
-              deleted.
-            </>
-          )}
-          {isStaff && (
-            <>
-              Tickets assigned to this IT staff member will be unassigned and
-              set back to <b>Open</b> so you can reassign them.
-            </>
-          )}
-          {isPrivileged && (
-            <>
-              This is a privileged account. Deleting it will remove admin
-              access immediately.
-            </>
-          )}
+          {isEmployee && <>{t("team.deleteEmployeeWarn")}</>}
+          {isStaff && <>{t("team.deleteStaffWarn")}</>}
+          {isPrivileged && <>{t("team.deleteAdminWarn")}</>}
         </div>
 
         <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="danger"
@@ -518,7 +515,7 @@ function ConfirmDeleteModal({ user, onClose, onConfirm }) {
             loading={loading}
             className="flex-1"
           >
-            {loading ? "Deleting…" : "Yes, delete"}
+            {loading ? t("common.deleting") : t("team.deleteConfirm")}
           </Button>
         </div>
       </div>

@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { MessageSquare, Send, Trash2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { useAuth } from "../context/AuthContext.jsx";
 import Avatar from "./ui/Avatar";
 import { cn } from "../lib/utils";
 
 export default function Comments({ ticketId }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [comments, setComments] = useState([]);
@@ -21,7 +23,7 @@ export default function Comments({ ticketId }) {
       const res = await api.get(`/tickets/${ticketId}/comments`);
       setComments(res.data);
     } catch (err) {
-      toast.error("Could not load comments");
+      toast.error(t("comments.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -40,9 +42,9 @@ export default function Comments({ ticketId }) {
       const res = await api.post(`/tickets/${ticketId}/comments`, { body });
       setComments([...comments, res.data]);
       setBody("");
-      toast.success("Comment posted");
+      toast.success(t("comments.posted"));
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not post comment");
+      toast.error(err.response?.data?.error || t("comments.postFailed"));
     } finally {
       setPosting(false);
     }
@@ -52,9 +54,9 @@ export default function Comments({ ticketId }) {
     try {
       await api.delete(`/tickets/${ticketId}/comments/${id}`);
       setComments(comments.filter((c) => c.id !== id));
-      toast.success("Comment deleted");
+      toast.success(t("comments.deleted"));
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not delete");
+      toast.error(err.response?.data?.error || t("comments.deleteFailed"));
     }
   }
 
@@ -72,7 +74,7 @@ export default function Comments({ ticketId }) {
         className="flex items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hover:text-brand-600 dark:hover:text-brand-400 transition"
       >
         <MessageSquare className="w-3.5 h-3.5" />
-        Comments
+        {t("comments.title")}
         {comments.length > 0 && (
           <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">
             {comments.length}
@@ -91,27 +93,25 @@ export default function Comments({ ticketId }) {
             <div className="pt-3 space-y-2">
               {loading && (
                 <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                  {t("comments.loading")}
                 </div>
               )}
 
               {!loading && comments.length === 0 && (
                 <p className="text-xs text-slate-400 italic">
-                  No comments yet. Start the discussion.
+                  {t("comments.empty")}
                 </p>
               )}
 
               {!loading &&
                 comments.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-start gap-2.5 group"
-                  >
+                  <div key={c.id} className="flex items-start gap-2.5 group">
                     <Avatar name={c.author?.name || "?"} size="sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                          {c.author?.name || "Unknown"}
+                          {c.author?.name || t("comments.unknownAuthor")}
                         </span>
                         <span className="text-[10px] text-slate-400">
                           {new Date(c.createdAt).toLocaleString()}
@@ -136,7 +136,7 @@ export default function Comments({ ticketId }) {
               {/* Add comment */}
               <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
                 <input
-                  placeholder="Write a comment…"
+                  placeholder={t("comments.placeholder")}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
@@ -156,7 +156,7 @@ export default function Comments({ ticketId }) {
                   ) : (
                     <Send className="w-3.5 h-3.5" />
                   )}
-                  Post
+                  {t("comments.post")}
                 </button>
               </form>
             </div>

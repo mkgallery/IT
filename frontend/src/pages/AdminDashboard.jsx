@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
@@ -25,16 +26,8 @@ import Skeleton from "../components/ui/Skeleton";
 import Comments from "../components/Comments";
 import { cn } from "../lib/utils";
 
-const filters = [
-  { value: "", label: "All" },
-  { value: "open", label: "Open" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "resolved", label: "Resolved" },
-  { value: "closed", label: "Closed" },
-];
-
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const [tickets, setTickets] = useState([]);
   const [staff, setStaff] = useState([]);
   const [stats, setStats] = useState(null);
@@ -42,6 +35,15 @@ export default function AdminDashboard() {
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  const filters = [
+    { value: "", label: t("admin.filterAll") },
+    { value: "open", label: t("admin.statOpen") },
+    { value: "assigned", label: t("admin.statAssigned") },
+    { value: "in_progress", label: t("admin.statInProgress") },
+    { value: "resolved", label: t("admin.statResolved") },
+    { value: "closed", label: t("admin.statClosed") },
+  ];
 
   async function loadAll() {
     try {
@@ -56,7 +58,7 @@ export default function AdminDashboard() {
       setStaff(sRes.data);
       setStats(statsRes.data);
     } catch (err) {
-      toast.error("Could not load dashboard");
+      toast.error(t("admin.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -73,68 +75,48 @@ export default function AdminDashboard() {
       await api.put(`/tickets/${ticketId}/assign`, {
         assigneeId: Number(assigneeId),
       });
-      toast.success("Ticket assigned");
+      toast.success(t("admin.assignedSuccess"));
       await loadAll();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not assign");
+      toast.error(err.response?.data?.error || t("admin.assignFailed"));
     }
   }
 
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
-    return tickets.filter((t) => {
-      const id = String(t.id).padStart(4, "0");
+    return tickets.filter((ticket) => {
+      const id = String(ticket.id).padStart(4, "0");
       return (
-        t.title?.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q) ||
+        ticket.title?.toLowerCase().includes(q) ||
+        ticket.description?.toLowerCase().includes(q) ||
         id.includes(q) ||
-        t.reporter?.name?.toLowerCase().includes(q) ||
-        t.reporter?.office?.toLowerCase().includes(q) ||
-        t.assignee?.name?.toLowerCase().includes(q) ||
-        t.category?.toLowerCase().includes(q)
+        ticket.reporter?.name?.toLowerCase().includes(q) ||
+        ticket.reporter?.office?.toLowerCase().includes(q) ||
+        ticket.assignee?.name?.toLowerCase().includes(q) ||
+        ticket.category?.toLowerCase().includes(q)
       );
     });
   }, [tickets, search]);
 
   return (
     <Layout
-      title="Admin — All Tickets"
-      subtitle="Monitor, assign, and resolve tickets across all offices"
+      title={t("admin.title")}
+      subtitle={t("admin.subtitle")}
       searchable
       onSearch={setSearch}
-      searchPlaceholder="Search by title, reporter, ID…"
+      searchPlaceholder={t("admin.searchPlaceholder")}
     >
       <div className="space-y-6">
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Stat icon={AlertCircle} label="Open" value={stats.open} tone="amber" />
-            <Stat
-              icon={UserPlus}
-              label="Assigned"
-              value={stats.assigned}
-              tone="sky"
-            />
-            <Stat
-              icon={Loader}
-              label="In Progress"
-              value={stats.inProgress}
-              tone="brand"
-            />
-            <Stat
-              icon={CheckCircle2}
-              label="Resolved"
-              value={stats.resolved}
-              tone="emerald"
-            />
-            <Stat icon={Inbox} label="Closed" value={stats.closed} tone="slate" />
-            <Stat
-              icon={TrendingUp}
-              label="Total"
-              value={stats.total}
-              tone="dark"
-            />
+            <Stat icon={AlertCircle} label={t("admin.statOpen")} value={stats.open} tone="amber" />
+            <Stat icon={UserPlus} label={t("admin.statAssigned")} value={stats.assigned} tone="sky" />
+            <Stat icon={Loader} label={t("admin.statInProgress")} value={stats.inProgress} tone="brand" />
+            <Stat icon={CheckCircle2} label={t("admin.statResolved")} value={stats.resolved} tone="emerald" />
+            <Stat icon={Inbox} label={t("admin.statClosed")} value={stats.closed} tone="slate" />
+            <Stat icon={TrendingUp} label={t("admin.statTotal")} value={stats.total} tone="dark" />
           </div>
         )}
 
@@ -163,11 +145,11 @@ export default function AdminDashboard() {
           >
             {showAddStaff ? (
               <>
-                <X className="w-4 h-4" /> Close
+                <X className="w-4 h-4" /> {t("common.close")}
               </>
             ) : (
               <>
-                <UserPlus className="w-4 h-4" /> Add IT Staff
+                <UserPlus className="w-4 h-4" /> {t("admin.addITStaff")}
               </>
             )}
           </Button>
@@ -195,12 +177,11 @@ export default function AdminDashboard() {
         {/* Search hint */}
         {search && !loading && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing {filteredTickets.length} of {tickets.length} ticket
-            {tickets.length !== 1 ? "s" : ""} matching "
-            <span className="font-medium text-slate-700 dark:text-slate-200">
-              {search}
-            </span>
-            "
+            {t("employee.showing", {
+              count: filteredTickets.length,
+              total: tickets.length,
+            })}{" "}
+            "<span className="font-medium text-slate-700 dark:text-slate-200">{search}</span>"
           </p>
         )}
 
@@ -216,7 +197,7 @@ export default function AdminDashboard() {
           {!loading && filteredTickets.length === 0 && (
             <EmptyState
               icon={Inbox}
-              title={search ? "No matches" : "No tickets"}
+              title={search ? t("common.noMatches") : t("common.noTickets")}
               description={
                 search
                   ? "Try a different search term."
@@ -226,9 +207,9 @@ export default function AdminDashboard() {
           )}
 
           {!loading &&
-            filteredTickets.map((t, i) => (
+            filteredTickets.map((ticket, i) => (
               <motion.div
-                key={t.id}
+                key={ticket.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
@@ -240,39 +221,39 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2 mb-1">
                           <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-[11px] text-slate-400 font-mono">
-                            #{String(t.id).padStart(4, "0")}
+                            #{String(ticket.id).padStart(4, "0")}
                           </span>
                         </div>
                         <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                          {t.title}
+                          {ticket.title}
                         </h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                          {t.description}
+                          {ticket.description}
                         </p>
                       </div>
-                      <StatusBadge status={t.status} />
+                      <StatusBadge status={ticket.status} />
                     </div>
 
-                    {t.attachmentUrl && (
+                    {ticket.attachmentUrl && (
                       <div className="mt-4">
                         <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
-                          Attachment from reporter
+                          {t("admin.attachmentFromReporter")}
                         </p>
-                        {t.attachmentType === "image" ? (
+                        {ticket.attachmentType === "image" ? (
                           <a
-                            href={t.attachmentUrl}
+                            href={ticket.attachmentUrl}
                             target="_blank"
                             rel="noreferrer"
                           >
                             <img
-                              src={t.attachmentUrl}
+                              src={ticket.attachmentUrl}
                               alt="attachment"
                               className="rounded-xl max-h-64 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
                             />
                           </a>
                         ) : (
                           <video
-                            src={t.attachmentUrl}
+                            src={ticket.attachmentUrl}
                             controls
                             className="rounded-xl max-h-64 border border-slate-200 dark:border-slate-700"
                           />
@@ -282,28 +263,28 @@ export default function AdminDashboard() {
 
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
                       <span className="capitalize">
-                        Priority: {t.priority}
+                        {t("common.priority")}: {ticket.priority}
                       </span>
-                      {t.reporter && (
+                      {ticket.reporter && (
                         <span className="flex items-center gap-1.5">
-                          <Avatar name={t.reporter.name} size="sm" />
+                          <Avatar name={ticket.reporter.name} size="sm" />
                           <span className="font-medium text-slate-700 dark:text-slate-200">
-                            {t.reporter.name}
+                            {ticket.reporter.name}
                           </span>
-                          {t.reporter.office && (
+                          {ticket.reporter.office && (
                             <span className="flex items-center gap-1 text-slate-400">
                               · <Building2 className="w-3 h-3" />
-                              {t.reporter.office}
+                              {ticket.reporter.office}
                             </span>
                           )}
                         </span>
                       )}
-                      {t.assignee && (
+                      {ticket.assignee && (
                         <span className="flex items-center gap-1.5">
                           <span className="text-slate-400">→</span>
-                          <Avatar name={t.assignee.name} size="sm" />
+                          <Avatar name={ticket.assignee.name} size="sm" />
                           <span className="font-medium text-slate-700 dark:text-slate-200">
-                            {t.assignee.name}
+                            {ticket.assignee.name}
                           </span>
                         </span>
                       )}
@@ -311,14 +292,14 @@ export default function AdminDashboard() {
 
                     <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
                       <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        Assign to:
+                        {t("admin.assignTo")}
                       </span>
                       <select
-                        defaultValue={t.assigneeId || ""}
-                        onChange={(e) => assign(t.id, e.target.value)}
+                        defaultValue={ticket.assigneeId || ""}
+                        onChange={(e) => assign(ticket.id, e.target.value)}
                         className="text-sm rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
                       >
-                        <option value="">Select IT staff…</option>
+                        <option value="">{t("admin.selectStaff")}</option>
                         {staff.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name} {s.office ? `(${s.office})` : ""}
@@ -327,7 +308,7 @@ export default function AdminDashboard() {
                       </select>
                     </div>
 
-                    <Comments ticketId={t.id} />
+                    <Comments ticketId={ticket.id} />
                   </div>
                 </Card>
               </motion.div>
@@ -391,6 +372,7 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
 
 /* ---------- Add staff form ---------- */
 function AddStaffForm({ onCreated }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -405,10 +387,10 @@ function AddStaffForm({ onCreated }) {
     setLoading(true);
     try {
       await api.post("/users", form);
-      toast.success("Account created");
+      toast.success(t("addMember.success"));
       onCreated();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not create account");
+      toast.error(err.response?.data?.error || t("addMember.failed"));
     } finally {
       setLoading(false);
     }
@@ -423,10 +405,10 @@ function AddStaffForm({ onCreated }) {
           </div>
           <div>
             <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-              Create new account
+              {t("addMember.title")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              IT staff or another admin
+              {t("addMember.subtitle")}
             </p>
           </div>
         </div>
@@ -434,7 +416,7 @@ function AddStaffForm({ onCreated }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <Input
             required
-            label="Full name"
+            label={t("addMember.fullName")}
             placeholder="Jane Doe"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -442,7 +424,7 @@ function AddStaffForm({ onCreated }) {
           <Input
             required
             type="email"
-            label="Email"
+            label={t("addMember.email")}
             placeholder="jane@company.com"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -450,24 +432,24 @@ function AddStaffForm({ onCreated }) {
           <Input
             required
             type="password"
-            label="Temporary password"
-            placeholder="Min. 8 chars"
+            label={t("addMember.password")}
+            placeholder={t("addMember.passwordHint")}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           <Select
-            label="Role"
+            label={t("addMember.role")}
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
           >
-            <option value="it_staff">IT Staff</option>
-            <option value="admin">Admin / Boss</option>
+            <option value="it_staff">{t("roles.it_staff")}</option>
+            <option value="admin">{t("roles.admin")}</option>
           </Select>
           <div className="sm:col-span-2">
             <Input
               required
-              label="Office / Location / Department"
-              placeholder="e.g. Headquarters, IT Dept"
+              label={t("addMember.office")}
+              placeholder={t("addMember.officeHint")}
               value={form.office}
               onChange={(e) => setForm({ ...form, office: e.target.value })}
             />
@@ -475,7 +457,7 @@ function AddStaffForm({ onCreated }) {
         </div>
 
         <Button type="submit" loading={loading} className="w-full" size="lg">
-          {loading ? "Creating…" : "Create account"}
+          {loading ? t("addMember.creating") : t("addMember.createAccount")}
         </Button>
       </form>
     </Card>

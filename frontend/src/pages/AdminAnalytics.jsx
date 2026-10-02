@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import Layout from "../components/Layout";
 import { Card } from "../components/ui/Card";
@@ -41,6 +42,7 @@ const pieColors = {
 };
 
 export default function AdminAnalytics() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -48,7 +50,6 @@ export default function AdminAnalytics() {
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Theme-aware chart colors
   const gridColor = isDark ? "#1e293b" : "#e2e8f0";
   const axisColor = isDark ? "#64748b" : "#94a3b8";
   const tooltipBg = isDark ? "#0f172a" : "#ffffff";
@@ -65,7 +66,7 @@ export default function AdminAnalytics() {
       setStats(statsRes.data);
       setTrend(trendRes.data);
     } catch (err) {
-      toast.error("Could not load analytics");
+      toast.error(t("analytics.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -73,15 +74,17 @@ export default function AdminAnalytics() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Chart data — names stay English (used as keys for colors)
   const pieData = stats
     ? [
-        { name: "Open", value: stats.open },
-        { name: "Assigned", value: stats.assigned },
-        { name: "In Progress", value: stats.inProgress },
-        { name: "Resolved", value: stats.resolved },
-        { name: "Closed", value: stats.closed },
+        { name: "Open", label: t("admin.statOpen"), value: stats.open },
+        { name: "Assigned", label: t("admin.statAssigned"), value: stats.assigned },
+        { name: "In Progress", label: t("admin.statInProgress"), value: stats.inProgress },
+        { name: "Resolved", label: t("admin.statResolved"), value: stats.resolved },
+        { name: "Closed", label: t("admin.statClosed"), value: stats.closed },
       ].filter((d) => d.value > 0)
     : [];
 
@@ -95,10 +98,7 @@ export default function AdminAnalytics() {
   };
 
   return (
-    <Layout
-      title="Analytics"
-      subtitle="Live insights into your support operations"
-    >
+    <Layout title={t("analytics.title")} subtitle={t("analytics.subtitle")}>
       <div className="space-y-5 max-w-6xl">
         {loading && (
           <>
@@ -112,24 +112,24 @@ export default function AdminAnalytics() {
           <>
             {/* Top stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <Stat icon={AlertCircle} label="Open" value={stats.open} tone="amber" />
-              <Stat icon={UserPlus} label="Assigned" value={stats.assigned} tone="sky" />
-              <Stat icon={Loader} label="In Progress" value={stats.inProgress} tone="brand" />
-              <Stat icon={CheckCircle2} label="Resolved" value={stats.resolved} tone="emerald" />
-              <Stat icon={Inbox} label="Closed" value={stats.closed} tone="slate" />
-              <Stat icon={TrendingUp} label="Total" value={stats.total} tone="dark" />
+              <Stat icon={AlertCircle} label={t("admin.statOpen")} value={stats.open} tone="amber" />
+              <Stat icon={UserPlus} label={t("admin.statAssigned")} value={stats.assigned} tone="sky" />
+              <Stat icon={Loader} label={t("admin.statInProgress")} value={stats.inProgress} tone="brand" />
+              <Stat icon={CheckCircle2} label={t("admin.statResolved")} value={stats.resolved} tone="emerald" />
+              <Stat icon={Inbox} label={t("admin.statClosed")} value={stats.closed} tone="slate" />
+              <Stat icon={TrendingUp} label={t("admin.statTotal")} value={stats.total} tone="dark" />
             </div>
 
-            {/* Line chart — full width */}
+            {/* Line chart */}
             <Card>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-white">
-                      Ticket volume — last 7 days
+                      {t("analytics.trendTitle")}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Number of tickets created per day
+                      {t("analytics.trendSubtitle")}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
@@ -180,7 +180,7 @@ export default function AdminAnalytics() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-sm text-slate-400">
-                    No data yet
+                    {t("common.noData")}
                   </div>
                 )}
               </div>
@@ -194,10 +194,10 @@ export default function AdminAnalytics() {
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-white">
-                        Status breakdown
+                        {t("analytics.breakdownTitle")}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Current distribution
+                        {t("analytics.breakdownSubtitle")}
                       </p>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 flex items-center justify-center">
@@ -215,6 +215,7 @@ export default function AdminAnalytics() {
                           outerRadius={95}
                           paddingAngle={3}
                           dataKey="value"
+                          nameKey="label"
                         >
                           {pieData.map((entry) => (
                             <Cell key={entry.name} fill={pieColors[entry.name]} />
@@ -230,7 +231,7 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-[280px] flex items-center justify-center text-sm text-slate-400">
-                      No tickets yet
+                      {t("common.noTickets")}
                     </div>
                   )}
                 </div>
@@ -242,10 +243,10 @@ export default function AdminAnalytics() {
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-white">
-                        Status counts
+                        {t("analytics.countsTitle")}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        At a glance
+                        {t("analytics.countsSubtitle")}
                       </p>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center">
@@ -264,7 +265,7 @@ export default function AdminAnalytics() {
                           vertical={false}
                         />
                         <XAxis
-                          dataKey="name"
+                          dataKey="label"
                           stroke={axisColor}
                           fontSize={11}
                           tickLine={false}
@@ -287,7 +288,7 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-[280px] flex items-center justify-center text-sm text-slate-400">
-                      No tickets yet
+                      {t("common.noTickets")}
                     </div>
                   )}
                 </div>

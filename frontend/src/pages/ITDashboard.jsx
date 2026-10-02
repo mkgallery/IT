@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
@@ -21,6 +22,7 @@ import Comments from "../components/Comments";
 const statusOptions = ["assigned", "in_progress", "resolved", "closed"];
 
 export default function ITDashboard() {
+  const { t } = useTranslation();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notesDraft, setNotesDraft] = useState({});
@@ -32,7 +34,7 @@ export default function ITDashboard() {
       const res = await api.get("/tickets");
       setTickets(res.data);
     } catch (err) {
-      toast.error("Could not load tickets");
+      toast.error(t("it.statusUpdateFailed"));
     } finally {
       setLoading(false);
     }
@@ -40,15 +42,16 @@ export default function ITDashboard() {
 
   useEffect(() => {
     loadTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateStatus(id, status) {
     try {
       await api.put(`/tickets/${id}/status`, { status });
-      toast.success("Status updated");
+      toast.success(t("it.statusUpdated"));
       await loadTickets();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not update status");
+      toast.error(err.response?.data?.error || t("it.statusUpdateFailed"));
     }
   }
 
@@ -58,10 +61,10 @@ export default function ITDashboard() {
       await api.put(`/tickets/${id}/status`, {
         resolutionNotes: notesDraft[id] || "",
       });
-      toast.success("Notes saved");
+      toast.success(t("it.notesSaved"));
       await loadTickets();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Could not save notes");
+      toast.error(err.response?.data?.error || t("it.notesSaveFailed"));
     } finally {
       setSavingId(null);
     }
@@ -70,26 +73,26 @@ export default function ITDashboard() {
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
-    return tickets.filter((t) => {
-      const id = String(t.id).padStart(4, "0");
+    return tickets.filter((ticket) => {
+      const id = String(ticket.id).padStart(4, "0");
       return (
-        t.title?.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q) ||
+        ticket.title?.toLowerCase().includes(q) ||
+        ticket.description?.toLowerCase().includes(q) ||
         id.includes(q) ||
-        t.reporter?.name?.toLowerCase().includes(q) ||
-        t.reporter?.office?.toLowerCase().includes(q) ||
-        t.category?.toLowerCase().includes(q)
+        ticket.reporter?.name?.toLowerCase().includes(q) ||
+        ticket.reporter?.office?.toLowerCase().includes(q) ||
+        ticket.category?.toLowerCase().includes(q)
       );
     });
   }, [tickets, search]);
 
   return (
     <Layout
-      title="Assigned to Me"
-      subtitle="Tickets assigned to you — update status and add resolution notes"
+      title={t("it.title")}
+      subtitle={t("it.subtitle")}
       searchable
       onSearch={setSearch}
-      searchPlaceholder="Search assigned tickets…"
+      searchPlaceholder={t("it.searchPlaceholder")}
     >
       <div className="space-y-4 max-w-4xl">
         {loading && (
@@ -102,34 +105,33 @@ export default function ITDashboard() {
         {!loading && tickets.length === 0 && (
           <EmptyState
             icon={Inbox}
-            title="All clear"
-            description="No tickets are assigned to you right now. Nice work!"
+            title={t("it.allClear")}
+            description={t("it.allClearDesc")}
           />
         )}
 
         {!loading && search && tickets.length > 0 && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing {filteredTickets.length} of {tickets.length} ticket
-            {tickets.length !== 1 ? "s" : ""} matching "
-            <span className="font-medium text-slate-700 dark:text-slate-200">
-              {search}
-            </span>
-            "
+            {t("employee.showing", {
+              count: filteredTickets.length,
+              total: tickets.length,
+            })}{" "}
+            "<span className="font-medium text-slate-700 dark:text-slate-200">{search}</span>"
           </p>
         )}
 
         {!loading && filteredTickets.length === 0 && tickets.length > 0 && (
           <EmptyState
             icon={Inbox}
-            title="No matches"
+            title={t("common.noMatches")}
             description="Try a different search term."
           />
         )}
 
         {!loading &&
-          filteredTickets.map((t, i) => (
+          filteredTickets.map((ticket, i) => (
             <motion.div
-              key={t.id}
+              key={ticket.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
@@ -142,40 +144,40 @@ export default function ITDashboard() {
                       <div className="flex items-center gap-2 mb-1">
                         <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
                         <span className="text-[11px] text-slate-400 font-mono">
-                          #{String(t.id).padStart(4, "0")}
+                          #{String(ticket.id).padStart(4, "0")}
                         </span>
                       </div>
                       <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                        {t.title}
+                        {ticket.title}
                       </h3>
                       <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {t.description}
+                        {ticket.description}
                       </p>
                     </div>
-                    <StatusBadge status={t.status} />
+                    <StatusBadge status={ticket.status} />
                   </div>
 
                   {/* Attachment */}
-                  {t.attachmentUrl && (
+                  {ticket.attachmentUrl && (
                     <div className="mt-4">
                       <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
-                        Attachment from reporter
+                        {t("it.attachmentFromReporter")}
                       </p>
-                      {t.attachmentType === "image" ? (
+                      {ticket.attachmentType === "image" ? (
                         <a
-                          href={t.attachmentUrl}
+                          href={ticket.attachmentUrl}
                           target="_blank"
                           rel="noreferrer"
                         >
                           <img
-                            src={t.attachmentUrl}
+                            src={ticket.attachmentUrl}
                             alt="attachment"
                             className="rounded-xl max-h-64 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
                           />
                         </a>
                       ) : (
                         <video
-                          src={t.attachmentUrl}
+                          src={ticket.attachmentUrl}
                           controls
                           className="rounded-xl max-h-64 border border-slate-200 dark:border-slate-700"
                         />
@@ -185,22 +187,24 @@ export default function ITDashboard() {
 
                   {/* Meta */}
                   <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
-                    {t.category && (
+                    {ticket.category && (
                       <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
-                        {t.category}
+                        {ticket.category}
                       </span>
                     )}
-                    <span className="capitalize">Priority: {t.priority}</span>
-                    {t.reporter && (
+                    <span className="capitalize">
+                      {t("common.priority")}: {ticket.priority}
+                    </span>
+                    {ticket.reporter && (
                       <span className="flex items-center gap-1.5">
-                        <Avatar name={t.reporter.name} size="sm" />
+                        <Avatar name={ticket.reporter.name} size="sm" />
                         <span className="font-medium text-slate-700 dark:text-slate-200">
-                          {t.reporter.name}
+                          {ticket.reporter.name}
                         </span>
-                        {t.reporter.office && (
+                        {ticket.reporter.office && (
                           <span className="flex items-center gap-1 text-slate-400">
                             · <Building2 className="w-3 h-3" />
-                            {t.reporter.office}
+                            {ticket.reporter.office}
                           </span>
                         )}
                       </span>
@@ -210,15 +214,15 @@ export default function ITDashboard() {
                   {/* Status buttons */}
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                      Update status
+                      {t("it.updateStatus")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {statusOptions.map((s) => (
                         <button
                           key={s}
-                          onClick={() => updateStatus(t.id, s)}
+                          onClick={() => updateStatus(ticket.id, s)}
                           className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${
-                            t.status === s
+                            ticket.status === s
                               ? "bg-brand-600 text-white border-brand-600 shadow-soft"
                               : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600"
                           }`}
@@ -233,29 +237,29 @@ export default function ITDashboard() {
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                       <MessageSquare className="w-3 h-3" />
-                      Resolution notes
+                      {t("it.resolutionNotes")}
                     </label>
                     <div className="flex gap-2">
                       <input
-                        placeholder="Add resolution notes…"
-                        defaultValue={t.resolutionNotes || ""}
+                        placeholder={t("it.addNotes")}
+                        defaultValue={ticket.resolutionNotes || ""}
                         onChange={(e) =>
-                          setNotesDraft({ ...notesDraft, [t.id]: e.target.value })
+                          setNotesDraft({ ...notesDraft, [ticket.id]: e.target.value })
                         }
                         className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
                       />
                       <Button
-                        onClick={() => saveNotes(t.id)}
-                        loading={savingId === t.id}
+                        onClick={() => saveNotes(ticket.id)}
+                        loading={savingId === ticket.id}
                         variant="secondary"
                       >
-                        {savingId === t.id ? "Saving…" : "Save"}
-                        {savingId !== t.id && <Save className="w-4 h-4" />}
+                        {savingId === ticket.id ? t("common.saving") : t("common.save")}
+                        {savingId !== ticket.id && <Save className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>
 
-                  <Comments ticketId={t.id} />
+                  <Comments ticketId={ticket.id} />
                 </div>
               </Card>
             </motion.div>
