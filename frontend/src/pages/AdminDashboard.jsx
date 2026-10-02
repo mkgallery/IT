@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import {
   Ticket as TicketIcon,
   Building2,
@@ -10,6 +10,7 @@ import {
   Loader,
   Inbox,
   X,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deleteTicket, setDeleteTicket] = useState(null);
 
   const filters = [
     { value: "", label: t("admin.filterAll") },
@@ -82,6 +84,18 @@ export default function AdminDashboard() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTicket) return;
+    try {
+      await api.delete(`/tickets/${deleteTicket.id}`);
+      toast.success("Ticket deleted");
+      setDeleteTicket(null);
+      await loadAll();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Delete failed");
+    }
+  }
+
   const filteredTickets = useMemo(() => {
     if (!search.trim()) return tickets;
     const q = search.toLowerCase();
@@ -108,7 +122,6 @@ export default function AdminDashboard() {
       searchPlaceholder={t("admin.searchPlaceholder")}
     >
       <div className="space-y-6">
-        {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <Stat icon={AlertCircle} label={t("admin.statOpen")} value={stats.open} tone="amber" />
@@ -120,7 +133,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Filter + Add staff */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-slate-400 mr-1" />
@@ -155,7 +167,6 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Add staff form */}
         <AnimatePresence>
           {showAddStaff && (
             <motion.div
@@ -174,7 +185,6 @@ export default function AdminDashboard() {
           )}
         </AnimatePresence>
 
-        {/* Search hint */}
         {search && !loading && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {t("employee.showing", {
@@ -185,7 +195,6 @@ export default function AdminDashboard() {
           </p>
         )}
 
-        {/* Tickets */}
         <div className="space-y-3">
           {loading && (
             <>
@@ -207,119 +216,218 @@ export default function AdminDashboard() {
           )}
 
           {!loading &&
-            filteredTickets.map((ticket, i) => (
-              <motion.div
-                key={ticket.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-              >
-                <Card className="hover:shadow-card transition-shadow">
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-[11px] text-slate-400 font-mono">
-                            #{String(ticket.id).padStart(4, "0")}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                          {ticket.title}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                          {ticket.description}
-                        </p>
-                      </div>
-                      <StatusBadge status={ticket.status} />
-                    </div>
+            filteredTickets.map((ticket, i) => {
+              const atts =
+                Array.isArray(ticket.attachments) && ticket.attachments.length > 0
+                  ? ticket.attachments
+                  : ticket.attachmentUrl
+                  ? [{ url: ticket.attachmentUrl, type: ticket.attachmentType }]
+                  : [];
 
-                    {ticket.attachmentUrl && (
-                      <div className="mt-4">
-                        <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
-                          {t("admin.attachmentFromReporter")}
-                        </p>
-                        {ticket.attachmentType === "image" ? (
-                          <a
-                            href={ticket.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
+              return (
+                <motion.div
+                  key={ticket.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                >
+                  <Card className="hover:shadow-card transition-shadow">
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              #{String(ticket.id).padStart(4, "0")}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                            {ticket.title}
+                          </h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                            {ticket.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={ticket.status} />
+                          <button
+                            onClick={() => setDeleteTicket(ticket)}
+                            title="Delete ticket"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition"
                           >
-                            <img
-                              src={ticket.attachmentUrl}
-                              alt="attachment"
-                              className="rounded-xl max-h-64 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
-                            />
-                          </a>
-                        ) : (
-                          <video
-                            src={ticket.attachmentUrl}
-                            controls
-                            className="rounded-xl max-h-64 border border-slate-200 dark:border-slate-700"
-                          />
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {atts.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
+                            {t("admin.attachmentFromReporter")} ({atts.length})
+                          </p>
+                          <div
+                            className={`grid gap-2 ${
+                              atts.length === 1
+                                ? "grid-cols-1"
+                                : atts.length === 2
+                                ? "grid-cols-2"
+                                : "grid-cols-3"
+                            }`}
+                          >
+                            {atts.map((a, idx) =>
+                              a.type === "image" ? (
+                                <a
+                                  key={idx}
+                                  href={a.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block"
+                                >
+                                  <img
+                                    src={a.url}
+                                    alt={`attachment ${idx + 1}`}
+                                    className={`rounded-lg object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition w-full ${
+                                      atts.length === 1 ? "max-h-64" : "aspect-square"
+                                    }`}
+                                  />
+                                </a>
+                              ) : (
+                                <video
+                                  key={idx}
+                                  src={a.url}
+                                  controls
+                                  className={`rounded-lg border border-slate-200 dark:border-slate-700 w-full ${
+                                    atts.length === 1 ? "max-h-64" : "aspect-square"
+                                  }`}
+                                />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="capitalize">
+                          {t("common.priority")}: {ticket.priority}
+                        </span>
+                        {ticket.reporter && (
+                          <span className="flex items-center gap-1.5">
+                            <Avatar name={ticket.reporter.name} size="sm" />
+                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                              {ticket.reporter.name}
+                            </span>
+                            {ticket.reporter.office && (
+                              <span className="flex items-center gap-1 text-slate-400">
+                                · <Building2 className="w-3 h-3" />
+                                {ticket.reporter.office}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        {ticket.assignee && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-slate-400">→</span>
+                            <Avatar name={ticket.assignee.name} size="sm" />
+                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                              {ticket.assignee.name}
+                            </span>
+                          </span>
                         )}
                       </div>
-                    )}
 
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
-                      <span className="capitalize">
-                        {t("common.priority")}: {ticket.priority}
-                      </span>
-                      {ticket.reporter && (
-                        <span className="flex items-center gap-1.5">
-                          <Avatar name={ticket.reporter.name} size="sm" />
-                          <span className="font-medium text-slate-700 dark:text-slate-200">
-                            {ticket.reporter.name}
-                          </span>
-                          {ticket.reporter.office && (
-                            <span className="flex items-center gap-1 text-slate-400">
-                              · <Building2 className="w-3 h-3" />
-                              {ticket.reporter.office}
-                            </span>
-                          )}
+                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                          {t("admin.assignTo")}
                         </span>
-                      )}
-                      {ticket.assignee && (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-slate-400">→</span>
-                          <Avatar name={ticket.assignee.name} size="sm" />
-                          <span className="font-medium text-slate-700 dark:text-slate-200">
-                            {ticket.assignee.name}
-                          </span>
-                        </span>
-                      )}
-                    </div>
+                        <select
+                          defaultValue={ticket.assigneeId || ""}
+                          onChange={(e) => assign(ticket.id, e.target.value)}
+                          className="text-sm rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
+                        >
+                          <option value="">{t("admin.selectStaff")}</option>
+                          {staff.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} {s.office ? `(${s.office})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {t("admin.assignTo")}
-                      </span>
-                      <select
-                        defaultValue={ticket.assigneeId || ""}
-                        onChange={(e) => assign(ticket.id, e.target.value)}
-                        className="text-sm rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition min-w-[200px]"
-                      >
-                        <option value="">{t("admin.selectStaff")}</option>
-                        {staff.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} {s.office ? `(${s.office})` : ""}
-                          </option>
-                        ))}
-                      </select>
+                      <Comments ticketId={ticket.id} />
                     </div>
-
-                    <Comments ticketId={ticket.id} />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+                  </Card>
+                </motion.div>
+              );
+            })}
         </div>
       </div>
+
+      <AnimatePresence>
+        {deleteTicket && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteTicket(null)}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                      Delete ticket?
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      #{String(deleteTicket.id).padStart(4, "0")} — {deleteTicket.title}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
+                  This will permanently delete the ticket
+                  {deleteTicket.attachmentUrl ||
+                  (deleteTicket.attachments && deleteTicket.attachments.length)
+                    ? " and all its attached files"
+                    : ""}
+                  .
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteTicket(null)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={confirmDelete}
+                    className="flex-1"
+                  >
+                    Yes, delete
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }
 
-/* ---------- Stat card ---------- */
 const toneClasses = {
   amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20",
   sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-500/20",
@@ -370,7 +478,6 @@ function Stat({ icon: Icon, label, value, tone = "slate" }) {
   );
 }
 
-/* ---------- Add staff form ---------- */
 function AddStaffForm({ onCreated }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({

@@ -35,6 +35,7 @@ const Ticket = sequelize.define("Ticket", {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  // Single attachment (legacy — kept for old tickets)
   attachmentUrl: {
     type: DataTypes.STRING(500),
     allowNull: true,
@@ -42,6 +43,12 @@ const Ticket = sequelize.define("Ticket", {
   attachmentType: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  // Multiple attachments (new) — array of { url, type }
+  attachments: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
   },
 });
 

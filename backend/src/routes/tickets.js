@@ -4,41 +4,54 @@ const { Op } = require("sequelize");
 const { Ticket, User } = require("../models");
 const { authRequired, requireRole } = require("../middleware/auth");
 const cloudinary = require("../config/cloudinary");
+const { deleteCloudinaryFile } = require("../config/cloudinaryHelpers");
 
 const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+  limits: { fileSize: 20 * 1024 * 1024, files: 5 }, // 20 MB per file, max 5 files
 });
 
 const publicUserAttrs = ["id", "name", "email", "office"];
 
-// Upload an attachment (image or video) -> returns a Cloudinary URL
-router.post("/upload", authRequired, upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+// Helper: upload a single buffer to Cloudinary
+function uploadBufferToCloudinary(buffer, mimetype) {
+  const isVideo = mimetype.startsWith("video/");
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "it-support-tickets",
+        resource_type: isVideo ? "video" : "image",
+      },
+      (err, result) => (err ? reject(err) : resolve(result))
+    );
+    stream.end(buffer);
+  });
+}
 
-    const isVideo = req.file.mimetype.startsWith("video/");
-    const isImage = req.file.mimetype.startsWith("image/");
-    if (!isVideo && !isImage) {
-      return res.status(400).json({ error: "Only images or videos are allowed" });
+// Upload MULTIPLE attachments (up to 5) -> returns array of { url, type }
+router.post("/upload", authRequired, upload.array("files", 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: "it-support-tickets",
-          resource_type: isVideo ? "video" : "image",
-        },
-        (err, result) => (err ? reject(err) : resolve(result))
-      );
-      stream.end(req.file.buffer);
-    });
+    const results = [];
+    for (const file of req.files) {
+      const isVideo = file.mimetype.startsWith("video/");
+      const isImage = file.mimetype.startsWith("image/");
+      if (!isVideo && !isImage) {
+        return res.status(400).json({ error: "Only images or videos are allowed" });
+      }
 
-    res.json({
-      url: result.secure_url,
-      type: isVideo ? "video" : "image",
-    });
+      const result = await uploadBufferToCloudinary(file.buffer, file.mimetype);
+      results.push({
+        url: result.secure_url,
+        type: isVideo ? "video" : "image",
+      });
+    }
+
+    res.json({ attachments: results });
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ error: err.message });
@@ -54,12 +67,23 @@ router.post("/", authRequired, async (req, res) => {
       category,
       priority,
       office,
-      attachmentUrl,
+      attachments, // array of { url, type } (new)
+      attachmentUrl, // single (legacy, still supported)
       attachmentType,
     } = req.body;
+
     if (!title || !description) {
       return res.status(400).json({ error: "title and description are required" });
     }
+
+    // Keep legacy fields too — set to the first attachment for compatibility
+    let firstUrl = attachmentUrl || null;
+    let firstType = attachmentType || null;
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      firstUrl = attachments[0].url;
+      firstType = attachments[0].type;
+    }
+
     const ticket = await Ticket.create({
       title,
       description,
@@ -68,8 +92,9 @@ router.post("/", authRequired, async (req, res) => {
       office: office || req.user.office,
       reporterId: req.user.id,
       status: "open",
-      attachmentUrl: attachmentUrl || null,
-      attachmentType: attachmentType || null,
+      attachmentUrl: firstUrl,
+      attachmentType: firstType,
+      attachments: Array.isArray(attachments) && attachments.length > 0 ? attachments : null,
     });
     res.status(201).json(ticket);
   } catch (err) {
@@ -210,6 +235,30 @@ router.put("/:id/status", authRequired, requireRole("it_staff", "admin"), async 
     if (resolutionNotes !== undefined) ticket.resolutionNotes = resolutionNotes;
     await ticket.save();
     res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: delete a ticket (also deletes all Cloudinary attachments)
+router.delete("/:id", authRequired, requireRole("admin"), async (req, res) => {
+  try {
+    const ticket = await Ticket.findByPk(req.params.id);
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    // Delete all attachments from Cloudinary
+    const urls = [];
+    if (Array.isArray(ticket.attachments)) {
+      ticket.attachments.forEach((a) => a.url && urls.push(a.url));
+    }
+    if (ticket.attachmentUrl) urls.push(ticket.attachmentUrl);
+
+    for (const url of urls) {
+      await deleteCloudinaryFile(url);
+    }
+
+    await ticket.destroy();
+    res.json({ success: true, message: "Ticket deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

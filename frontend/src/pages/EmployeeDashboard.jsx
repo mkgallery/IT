@@ -21,6 +21,9 @@ import EmptyState from "../components/ui/EmptyState";
 import Skeleton from "../components/ui/Skeleton";
 import Comments from "../components/Comments";
 
+const MAX_FILES = 5;
+const MAX_SIZE = 20 * 1024 * 1024;
+
 export default function EmployeeDashboard() {
   const { t } = useTranslation();
   const [tickets, setTickets] = useState([]);
@@ -32,8 +35,8 @@ export default function EmployeeDashboard() {
     category: "",
     priority: "medium",
   });
-  const [file, setFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,24 +57,50 @@ export default function EmployeeDashboard() {
   }, []);
 
   function handleFileChange(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
-      toast.error(t("employee.fileTypeWrong"));
+    const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
+
+    const combined = [...files, ...selected];
+
+    if (combined.length > MAX_FILES) {
+      toast.error(`Max ${MAX_FILES} files per ticket`);
       return;
     }
-    if (f.size > 20 * 1024 * 1024) {
-      toast.error(t("employee.fileTooBig"));
-      return;
+
+    for (const f of selected) {
+      if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
+        toast.error(t("employee.fileTypeWrong"));
+        return;
+      }
+      if (f.size > MAX_SIZE) {
+        toast.error(t("employee.fileTooBig"));
+        return;
+      }
     }
-    setFile(f);
-    setFilePreview(URL.createObjectURL(f));
+
+    setFiles(combined);
+    setPreviews([
+      ...previews,
+      ...selected.map((f) => ({
+        url: URL.createObjectURL(f),
+        type: f.type.startsWith("video/") ? "video" : "image",
+      })),
+    ]);
+    e.target.value = "";
   }
 
-  function clearFile() {
-    setFile(null);
-    if (filePreview) URL.revokeObjectURL(filePreview);
-    setFilePreview(null);
+  function removeFile(index) {
+    const newFiles = files.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    URL.revokeObjectURL(previews[index].url);
+    setFiles(newFiles);
+    setPreviews(newPreviews);
+  }
+
+  function clearFiles() {
+    previews.forEach((p) => URL.revokeObjectURL(p.url));
+    setFiles([]);
+    setPreviews([]);
   }
 
   async function handleSubmit(e) {
@@ -79,26 +108,24 @@ export default function EmployeeDashboard() {
     setSubmitting(true);
 
     try {
-      let attachmentUrl = null;
-      let attachmentType = null;
+      let uploadedAttachments = [];
 
-      if (file) {
+      if (files.length > 0) {
         setUploading(true);
         const fd = new FormData();
-        fd.append("file", file);
+        files.forEach((f) => fd.append("files", f));
         const uploadRes = await api.post("/tickets/upload", fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        attachmentUrl = uploadRes.data.url;
-        attachmentType = uploadRes.data.type;
+        uploadedAttachments = uploadRes.data.attachments || [];
         setUploading(false);
       }
 
-      await api.post("/tickets", { ...form, attachmentUrl, attachmentType });
+      await api.post("/tickets", { ...form, attachments: uploadedAttachments });
       toast.success(t("employee.submitSuccess"));
 
       setForm({ title: "", description: "", category: "", priority: "medium" });
-      clearFile();
+      clearFiles();
       await loadTickets();
     } catch (err) {
       toast.error(err.response?.data?.error || t("employee.submitFailed"));
@@ -192,61 +219,67 @@ export default function EmployeeDashboard() {
                   <option value="urgent">{t("employee.priority_urgent")}</option>
                 </Select>
 
-                {/* File upload */}
+                {/* Multi-file upload */}
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    {t("employee.attachLabel")}
+                    {t("employee.attachLabel")}{" "}
+                    <span className="text-slate-400">
+                      ({files.length}/{MAX_FILES})
+                    </span>
                   </label>
 
-                  <AnimatePresence>
-                    {!filePreview ? (
-                      <motion.label
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50/30 dark:hover:bg-brand-500/10 cursor-pointer transition"
-                      >
-                        <Paperclip className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
-                          {t("employee.attachHint")}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*,video/*"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </motion.label>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
-                      >
-                        {file?.type.startsWith("image/") ? (
-                          <img
-                            src={filePreview}
-                            alt="preview"
-                            className="w-full max-h-44 object-cover"
-                          />
-                        ) : (
-                          <video
-                            src={filePreview}
-                            controls
-                            className="w-full max-h-44"
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={clearFile}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-red-600 transition"
+                  {/* Preview grid */}
+                  {previews.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      {previews.map((p, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 aspect-square"
                         >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          {p.type === "image" ? (
+                            <img
+                              src={p.url}
+                              alt="preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={p.url}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeFile(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-red-600 transition"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add more button */}
+                  {files.length < MAX_FILES && (
+                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50/30 dark:hover:bg-brand-500/10 cursor-pointer transition">
+                      <Paperclip className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">
+                        {files.length === 0
+                          ? t("employee.attachHint")
+                          : `Add more (up to ${MAX_FILES - files.length})`}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <Button
@@ -303,90 +336,123 @@ export default function EmployeeDashboard() {
           )}
 
           {!loading &&
-            filteredTickets.map((ticket, i) => (
-              <motion.div
-                key={ticket.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <Card className="hover:shadow-card transition-shadow">
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-[11px] text-slate-400 font-mono">
-                            #{String(ticket.id).padStart(4, "0")}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                          {ticket.title}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                          {ticket.description}
-                        </p>
-                      </div>
-                      <StatusBadge status={ticket.status} />
-                    </div>
+            filteredTickets.map((ticket, i) => {
+              // Build attachments list: prefer new array, fallback to legacy single
+              const atts =
+                Array.isArray(ticket.attachments) && ticket.attachments.length > 0
+                  ? ticket.attachments
+                  : ticket.attachmentUrl
+                  ? [{ url: ticket.attachmentUrl, type: ticket.attachmentType }]
+                  : [];
 
-                    {ticket.attachmentUrl && (
-                      <div className="mt-4">
-                        {ticket.attachmentType === "image" ? (
-                          <a
-                            href={ticket.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
+              return (
+                <motion.div
+                  key={ticket.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <Card className="hover:shadow-card transition-shadow">
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TicketIcon className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              #{String(ticket.id).padStart(4, "0")}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                            {ticket.title}
+                          </h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                            {ticket.description}
+                          </p>
+                        </div>
+                        <StatusBadge status={ticket.status} />
+                      </div>
+
+                      {/* Attachments gallery */}
+                      {atts.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-[11px] text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
+                            Attachments ({atts.length})
+                          </p>
+                          <div
+                            className={`grid gap-2 ${
+                              atts.length === 1
+                                ? "grid-cols-1"
+                                : atts.length === 2
+                                ? "grid-cols-2"
+                                : "grid-cols-3"
+                            }`}
                           >
-                            <img
-                              src={ticket.attachmentUrl}
-                              alt="attachment"
-                              className="rounded-xl max-h-56 object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition"
-                            />
-                          </a>
-                        ) : (
-                          <video
-                            src={ticket.attachmentUrl}
-                            controls
-                            className="rounded-xl max-h-56 border border-slate-200 dark:border-slate-700"
-                          />
+                            {atts.map((a, idx) =>
+                              a.type === "image" ? (
+                                <a
+                                  key={idx}
+                                  href={a.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block"
+                                >
+                                  <img
+                                    src={a.url}
+                                    alt={`attachment ${idx + 1}`}
+                                    className={`rounded-lg object-cover border border-slate-200 dark:border-slate-700 hover:opacity-90 transition w-full ${
+                                      atts.length === 1 ? "max-h-56" : "aspect-square"
+                                    }`}
+                                  />
+                                </a>
+                              ) : (
+                                <video
+                                  key={idx}
+                                  src={a.url}
+                                  controls
+                                  className={`rounded-lg border border-slate-200 dark:border-slate-700 w-full ${
+                                    atts.length === 1 ? "max-h-56" : "aspect-square"
+                                  }`}
+                                />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+                        {ticket.category && (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
+                            {ticket.category}
+                          </span>
+                        )}
+                        <span className="capitalize">
+                          {t("common.priority")}: {ticket.priority}
+                        </span>
+                        {ticket.assignee && (
+                          <span className="flex items-center gap-1.5">
+                            <Avatar name={ticket.assignee.name} size="sm" />
+                            {ticket.assignee.name}
+                          </span>
                         )}
                       </div>
-                    )}
 
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
-                      {ticket.category && (
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
-                          {ticket.category}
-                        </span>
-                      )}
-                      <span className="capitalize">
-                        {t("common.priority")}: {ticket.priority}
-                      </span>
-                      {ticket.assignee && (
-                        <span className="flex items-center gap-1.5">
-                          <Avatar name={ticket.assignee.name} size="sm" />
-                          {ticket.assignee.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {ticket.resolutionNotes && (
-                      <div className="mt-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
-                        <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">
-                          {t("employee.resolution")}
+                      {ticket.resolutionNotes && (
+                        <div className="mt-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
+                          <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">
+                            {t("employee.resolution")}
+                          </div>
+                          <p className="text-sm text-emerald-800 dark:text-emerald-300">
+                            {ticket.resolutionNotes}
+                          </p>
                         </div>
-                        <p className="text-sm text-emerald-800 dark:text-emerald-300">
-                          {ticket.resolutionNotes}
-                        </p>
-                      </div>
-                    )}
+                      )}
 
-                    <Comments ticketId={ticket.id} />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+                      <Comments ticketId={ticket.id} />
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
         </div>
       </div>
     </Layout>
