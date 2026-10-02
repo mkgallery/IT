@@ -1,5 +1,6 @@
 const express = require("express");
 const multer = require("multer");
+const { Op } = require("sequelize");
 const { Ticket, User } = require("../models");
 const { authRequired, requireRole } = require("../middleware/auth");
 const cloudinary = require("../config/cloudinary");
@@ -23,7 +24,6 @@ router.post("/upload", authRequired, upload.single("file"), async (req, res) => 
       return res.status(400).json({ error: "Only images or videos are allowed" });
     }
 
-    // Upload to Cloudinary from buffer
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -100,6 +100,60 @@ router.get("/", authRequired, async (req, res) => {
   res.json(tickets);
 });
 
+// Admin: dashboard stats (MUST be before /:id)
+router.get("/stats/overview", authRequired, requireRole("admin"), async (req, res) => {
+  const [open, assigned, inProgress, resolved, closed, total] = await Promise.all([
+    Ticket.count({ where: { status: "open" } }),
+    Ticket.count({ where: { status: "assigned" } }),
+    Ticket.count({ where: { status: "in_progress" } }),
+    Ticket.count({ where: { status: "resolved" } }),
+    Ticket.count({ where: { status: "closed" } }),
+    Ticket.count(),
+  ]);
+  res.json({ open, assigned, inProgress, resolved, closed, total });
+});
+
+// Admin: 7-day ticket volume trend (MUST be before /:id)
+router.get("/stats/trend", authRequired, requireRole("admin"), async (req, res) => {
+  try {
+    const days = 7;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+
+    const tickets = await Ticket.findAll({
+      where: { createdAt: { [Op.gte]: start } },
+      attributes: ["createdAt"],
+    });
+
+    const buckets = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      buckets[key] = 0;
+    }
+
+    tickets.forEach((ticket) => {
+      const key = new Date(ticket.createdAt).toISOString().slice(0, 10);
+      if (buckets[key] !== undefined) buckets[key] += 1;
+    });
+
+    const result = Object.entries(buckets).map(([date, count]) => {
+      const d = new Date(date);
+      return {
+        date,
+        label: d.toLocaleDateString("en-US", { weekday: "short" }),
+        count,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get single ticket
 router.get("/:id", authRequired, async (req, res) => {
   const ticket = await Ticket.findByPk(req.params.id, {
@@ -159,19 +213,6 @@ router.put("/:id/status", authRequired, requireRole("it_staff", "admin"), async 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// Admin: dashboard stats
-router.get("/stats/overview", authRequired, requireRole("admin"), async (req, res) => {
-  const [open, assigned, inProgress, resolved, closed, total] = await Promise.all([
-    Ticket.count({ where: { status: "open" } }),
-    Ticket.count({ where: { status: "assigned" } }),
-    Ticket.count({ where: { status: "in_progress" } }),
-    Ticket.count({ where: { status: "resolved" } }),
-    Ticket.count({ where: { status: "closed" } }),
-    Ticket.count(),
-  ]);
-  res.json({ open, assigned, inProgress, resolved, closed, total });
 });
 
 module.exports = router;
