@@ -1,4 +1,5 @@
 require("dotenv").config();
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -19,11 +20,17 @@ app.use("/api/users", userRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api", commentRoutes);
 
-const PORT = process.env.PORT || 4000;
+const frontendDist = path.join(__dirname, "../../frontend/dist");
+app.use(express.static(frontendDist));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendDist, "index.html"));
+});
+
+const PORT = 3000;
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL;
-  const password = process.env.ADMIN_PASSWORD;
+  const email = process.env.ADMIN_EMAIL || "admin@company.com";
+  const password = process.env.ADMIN_PASSWORD || "Admin123!";
   if (!email || !password) return;
 
   const existing = await User.findOne({ where: { email } });
@@ -64,7 +71,9 @@ async function start() {
   await sequelize.sync();
   await seedAdmin();
 
-  app.listen(PORT, () => console.log(`IT Support backend running on port ${PORT}`));
+  app.listen(PORT, "0.0.0.0", () =>
+    console.log(`IT Support backend running on http://0.0.0.0:${PORT}`)
+  );
 }
 
 start();

@@ -7,7 +7,7 @@ function authRequired(req, res, next) {
   }
   const token = header.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_jwt_secret_fallback");
     req.user = decoded; // { id, role, name, email }
     next();
   } catch (err) {

@@ -1,0 +1,15 @@
+{
+  "name": "it-support-desk",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build:frontend": "npm run build --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "dev": "node -e \"if(!require('fs').existsSync('frontend/dist/index.html')) require('child_process').execSync('npm run build:frontend', {stdio:'inherit'})\" && node backend/src/index.js",
+    "start": "node backend/src/index.js"
+  }
+}
